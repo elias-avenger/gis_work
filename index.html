@@ -4,10 +4,435 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f7f7f7;
+            padding: 40px;
+            margin: 0;
+        }
+        h2 {
+            color: #222;
+            margin-bottom: 24px;
+        }
+        .import-section {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 24px 28px 18px 28px;
+            margin-bottom: 28px;
+            max-width: 600px;
+        }
+        label {
+            font-weight: 600;
+            color: #444;
+        }
+        input[type="file"], select {
+            padding: 8px 10px;
+            border-radius: 4px;
+            border: 1px solid #bbb;
+            margin-top: 6px;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+        input[type="file"]::-webkit-file-upload-button {
+            background: #eee;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+        #csvColumnSelector label {
+            font-weight: 500;
+        }
+        #csvColumnSelector select {
+            min-width: 180px;
+        }
+        #csvColumnSelector button {
+            background: #0078d4;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 7px 16px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #csvColumnSelector button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #csvColumnSelector button:not(:disabled):hover {
+            background: #005fa3;
+        }
+        #importStatus1, #importStatus2 {
+            color: #006400;
+            font-size: 1em;
+            margin-top: 10px;
+            min-height: 24px;
+        }
+        #compareBtn {
+            padding: 12px 28px;
+            font-size: 1.1em;
+            background: #0078d4;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            transition: background 0.2s;
+        }
+        #compareBtn:disabled {
+            background: #ccc;
+            color: #888;
+            cursor: not-allowed;
+        }
+        #compareBtn:not(:disabled):hover {
+            background: #005fa3;
+        }
+        #compareResults {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 22px 28px;
+            margin-top: 18px;
+            max-width: 600px;
+            font-size: 1.08em;
+        }
+        details {
+            margin-top: 10px;
+        }
+        summary {
+            cursor: pointer;
+            font-weight: 500;
+        }
+        ol {
+            margin: 0 0 0 18px;
+        }
+    </style>
 </head>
 <body>
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js">
-        
+    <h2>Import GeoJSON Files</h2>
+    <div class="import-section">
+        <label for="jsonFileInput1">GeoJSON File 1:</label><br>
+        <input type="file" id="jsonFileInput1" accept="application/geo+json,application/json,.geojson,.json" />
+        <div id="importStatus1"></div>
+    </div>
+    <div class="import-section">
+        <label for="jsonFileInput2">GeoJSON File 2:</label>
+        <select id="fileTypeSelect2" style="margin-left:10px;">
+            <option value="geojson">GeoJSON</option>
+            <option value="csv">CSV</option>
+        </select>
+        <input type="file" id="jsonFileInput2" accept="application/geo+json,application/json,.geojson,.json,.csv,text/csv" />
+        <div id="csvColumnSelector"></div>
+        <div id="importStatus2"></div>
+    </div>
+    <div class="import-section" style="text-align:center;">
+        <button id="compareBtn" disabled>Compare Features</button>
+    </div>
+    <div id="compareResults"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script>
+        // --- Utility functions for GeoJSON validation ---
+
+        /**
+         * Checks if the object is a valid GeoJSON object.
+         */
+        function isValidGeoJSON(obj) {
+            if (!obj || typeof obj !== 'object' || !obj.type) return false;
+            const geoTypes = [
+                'Feature', 'FeatureCollection', 'Point', 'LineString', 'Polygon',
+                'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection'
+            ];
+            if (!geoTypes.includes(obj.type)) return false;
+            if (obj.type === 'FeatureCollection' && !Array.isArray(obj.features)) return false;
+            if (obj.type === 'Feature' && !obj.geometry) return false;
+            return true;
+        }
+
+        /**
+         * Checks if the object is a single Feature or FeatureCollection with one Feature,
+         * and the geometry is Polygon or MultiPolygon.
+         */
+        function isSinglePolygonOrMultiPolygonFeatureOrCollection(obj) {
+            if (
+                obj && obj.type === 'Feature' &&
+                obj.geometry &&
+                (obj.geometry.type === 'Polygon' || obj.geometry.type === 'MultiPolygon')
+            ) {
+                return true;
+            }
+            if (
+                obj && obj.type === 'FeatureCollection' &&
+                Array.isArray(obj.features) &&
+                obj.features.length === 1 &&
+                obj.features[0].type === 'Feature' &&
+                obj.features[0].geometry &&
+                (obj.features[0].geometry.type === 'Polygon' || obj.features[0].geometry.type === 'MultiPolygon')
+            ) {
+                return true;
+            }
+            return false;
+        }
+
+        // --- Main logic for handling file imports ---
+
+        // Store imported GeoJSON/CSV objects for later use
+        let importedGeoJSON1 = null;
+        let importedGeoJSON2 = null;
+        let importedCSV2 = null;
+        let csvHeaders2 = [];
+
+        /**
+         * Utility to parse CSV text into an array of objects using PapaParse.
+         * Assumes first line is header.
+         */
+        function parseCSV(text) {
+            const result = Papa.parse(text, { header: true, skipEmptyLines: true });
+            return { headers: result.meta.fields, rows: result.data };
+        }
+
+        /**
+         * Prompts the user to select the geometry column from CSV headers.
+         */
+        function promptForGeometryColumn(headers, onSelect) {
+            const selectorDiv = document.getElementById('csvColumnSelector');
+            selectorDiv.innerHTML = '';
+            const label = document.createElement('label');
+            label.textContent = 'Select geometry column:';
+            label.style.marginRight = '8px';
+            const select = document.createElement('select');
+            select.id = 'geometryColumnSelect2';
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '-- Select geometry column --';
+            select.appendChild(defaultOption);
+            headers.forEach(h => {
+                const option = document.createElement('option');
+                option.value = h;
+                option.textContent = h;
+                select.appendChild(option);
+            });
+            const button = document.createElement('button');
+            button.textContent = 'Convert to GeoJSON';
+            button.style.marginLeft = '10px';
+            button.disabled = true;
+            // Enable button only when a valid column is selected
+            select.addEventListener('change', function() {
+                button.disabled = !select.value;
+            });
+            button.onclick = () => {
+                const statusDiv = document.getElementById('importStatus2');
+                if (!select.value) {
+                    statusDiv.style.color = 'red';
+                    statusDiv.textContent = 'Please select a geometry column before converting.';
+                    select.style.borderColor = 'red';
+                    return;
+                }
+                select.style.borderColor = '';
+                onSelect(select.value, statusDiv);
+            };
+            selectorDiv.appendChild(label);
+            selectorDiv.appendChild(select);
+            selectorDiv.appendChild(button);
+        }
+
+        /**
+         * Converts CSV rows to a GeoJSON FeatureCollection using the selected geometry column.
+         * Now validates that at least one valid geometry exists.
+         */
+        function convertCSVtoGeoJSON(rows, geometryColumn) {
+            const features = rows.map(row => {
+                let geometry = null;
+                try {
+                    geometry = JSON.parse(row[geometryColumn]);
+                } catch (e) {
+                    geometry = null;
+                }
+                const properties = { ...row };
+                delete properties[geometryColumn];
+                return {
+                    type: 'Feature',
+                    geometry,
+                    properties
+                };
+            }).filter(f => f.geometry && f.geometry.type);
+            return {
+                type: 'FeatureCollection',
+                features
+            };
+        }
+
+        function handleFileImport(inputId, statusId, options = {}) {
+            document.getElementById(inputId).addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                const statusDiv = document.getElementById(statusId);
+                if (!file) {
+                    statusDiv.textContent = '';
+                    if (inputId === 'jsonFileInput2') document.getElementById('csvColumnSelector').innerHTML = '';
+                    return;
+                }
+                let fileType = options.fileType;
+                if (inputId === 'jsonFileInput2') {
+                    fileType = document.getElementById('fileTypeSelect2').value;
+                }
+                if (fileType === 'geojson') {
+                    const validTypes = [
+                        'application/geo+json', 'application/json', 'application/octet-stream'
+                    ];
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (!validTypes.includes(file.type) && ext !== 'geojson' && ext !== 'json') {
+                        statusDiv.style.color = 'red';
+                        statusDiv.textContent = 'Please select a valid GeoJSON file (.geojson or .json).';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const json = JSON.parse(e.target.result);
+                            if (options.requireSinglePolygon) {
+                                if (!isSinglePolygonOrMultiPolygonFeatureOrCollection(json)) {
+                                    statusDiv.style.color = 'red';
+                                    statusDiv.textContent = 'File must be a single Polygon or MultiPolygon Feature, or a FeatureCollection with one such Feature.';
+                                    return;
+                                }
+                            } else {
+                                if (!isValidGeoJSON(json)) {
+                                    statusDiv.style.color = 'red';
+                                    statusDiv.textContent = 'The file is not a valid GeoJSON object.';
+                                    return;
+                                }
+                            }
+                            statusDiv.style.color = '#006400';
+                            statusDiv.textContent = `GeoJSON imported and validated successfully!`;
+                            if (inputId === 'jsonFileInput1') {
+                                setImportedGeoJSON1(json);
+                            } else if (inputId === 'jsonFileInput2') {
+                                setImportedGeoJSON2(json);
+                                importedCSV2 = null;
+                            }
+                            console.log(`Imported GeoJSON (${inputId}):`, json);
+                        } catch (err) {
+                            statusDiv.style.color = 'red';
+                            statusDiv.textContent = 'Invalid JSON file.';
+                        }
+                    };
+                    reader.readAsText(file);
+                } else if (fileType === 'csv') {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (file.type !== 'text/csv' && ext !== 'csv') {
+                        statusDiv.style.color = 'red';
+                        statusDiv.textContent = 'Please select a valid CSV file (.csv).';
+                        document.getElementById('csvColumnSelector').innerHTML = '';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const text = e.target.result;
+                        if (!text.includes(',') || text.split('\n').length < 2) {
+                            statusDiv.style.color = 'red';
+                            statusDiv.textContent = 'Invalid CSV file.';
+                            document.getElementById('csvColumnSelector').innerHTML = '';
+                            return;
+                        }
+                        importedCSV2 = text;
+                        importedGeoJSON2 = null;
+                        const { headers, rows } = parseCSV(text);
+                        csvHeaders2 = headers;
+                        statusDiv.style.color = '#006400';
+                        statusDiv.textContent = 'CSV imported! Please select the geometry column.';
+                        promptForGeometryColumn(headers, (geometryColumn, statusDiv) => {
+                            const geojson = convertCSVtoGeoJSON(rows, geometryColumn);
+                            if (!geojson.features.length) {
+                                statusDiv.style.color = 'red';
+                                statusDiv.textContent = 'No valid GeoJSON geometries found in the selected column.';
+                                return;
+                            }
+                            setImportedGeoJSON2(geojson);
+                            statusDiv.style.color = '#006400';
+                            statusDiv.textContent = `CSV converted to GeoJSON successfully!`;
+                            document.getElementById('csvColumnSelector').innerHTML = '';
+                            console.log('Converted GeoJSON from CSV:', geojson);
+                        });
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        // Enable/disable compare button based on import status
+        function updateCompareButton() {
+            const btn = document.getElementById('compareBtn');
+            btn.disabled = !(importedGeoJSON1 && importedGeoJSON2 && importedGeoJSON2.features && importedGeoJSON2.features.length);
+        }
+
+        // Patch import logic to update compare button
+        const oldSet1 = importedGeoJSON1, oldSet2 = importedGeoJSON2;
+        Object.defineProperty(window, 'importedGeoJSON1', {
+            set(val) { importedGeoJSON1 = val; updateCompareButton(); },
+            get() { return importedGeoJSON1; }
+        });
+        Object.defineProperty(window, 'importedGeoJSON2', {
+            set(val) { importedGeoJSON2 = val; updateCompareButton(); },
+            get() { return importedGeoJSON2; }
+        });
+        // Also call updateCompareButton after conversion
+        // (for direct assignment in code)
+
+        // --- Comparison logic ---
+        document.getElementById('compareBtn').addEventListener('click', function() {
+            const resultsDiv = document.getElementById('compareResults');
+            resultsDiv.innerHTML = '';
+            if (!importedGeoJSON1 || !importedGeoJSON2 || !importedGeoJSON2.features || !importedGeoJSON2.features.length) {
+                resultsDiv.style.color = 'red';
+                resultsDiv.textContent = 'Both files must be imported and valid before comparison.';
+                return;
+            }
+            // Get the polygon geometry from file 1
+            let polygon = importedGeoJSON1;
+            if (polygon.type === 'FeatureCollection') polygon = polygon.features[0];
+            const polyGeom = polygon.geometry;
+            // Compare each feature in file 2
+            const withinFeatures = [];
+            const outsideFeatures = [];
+            importedGeoJSON2.features.forEach((feat, idx) => {
+                try {
+                    if (feat.geometry && (feat.geometry.type === 'Point' || feat.geometry.type === 'Polygon' || feat.geometry.type === 'MultiPolygon' || feat.geometry.type === 'LineString' || feat.geometry.type === 'MultiLineString')) {
+                        if (turf.booleanWithin(feat, polygon)) {
+                            withinFeatures.push({ idx, feat });
+                        } else {
+                            outsideFeatures.push({ idx, feat });
+                        }
+                    } else {
+                        outsideFeatures.push({ idx, feat });
+                    }
+                } catch (e) {
+                    outsideFeatures.push({ idx, feat });
+                }
+            });
+            // Output summary
+            resultsDiv.style.color = '#333';
+            resultsDiv.innerHTML = `<b>Comparison Results:</b><br>
+                <span style='color:green;'>${withinFeatures.length}</span> out of <span style='color:blue;'>${importedGeoJSON2.features.length}</span> features are <b>within</b> the polygon.<br>`;
+            if (withinFeatures.length) {
+                resultsDiv.innerHTML += `<details><summary>Show features within</summary><ol>${withinFeatures.map(f => `<li>Feature #${f.idx+1} (${f.feat.geometry.type})</li>`).join('')}</ol></details>`;
+            }
+            if (outsideFeatures.length) {
+                resultsDiv.innerHTML += `<details><summary>Show features outside</summary><ol>${outsideFeatures.map(f => `<li>Feature #${f.idx+1} (${f.feat.geometry ? f.feat.geometry.type : 'No geometry'})</li>`).join('')}</ol></details>`;
+            }
+        });
+
+        // Patch import logic to update compare button after import/conversion
+        function setImportedGeoJSON1(val) { importedGeoJSON1 = val; updateCompareButton(); }
+        function setImportedGeoJSON2(val) { importedGeoJSON2 = val; updateCompareButton(); }
+        // Use these setters in import logic
+
+        // Initialize file import handlers
+        handleFileImport('jsonFileInput1', 'importStatus1', { requireSinglePolygon: true, fileType: 'geojson' });
+        handleFileImport('jsonFileInput2', 'importStatus2');
     </script>
 </body>
 </html>
