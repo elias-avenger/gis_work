@@ -109,6 +109,26 @@
         ol {
             margin: 0 0 0 18px;
         }
+        .export-buttons {
+            margin-top: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .export-btn {
+            background: #0078d4;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .export-btn:hover {
+            background: #005fa3;
+        }
     </style>
 </head>
 <body>
@@ -135,136 +155,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script>
-        // --- Utility functions for GeoJSON validation ---
 
-        /**
-         * Checks if the object is a valid GeoJSON object.
-         */
-        function isValidGeoJSON(obj) {
-            if (!obj || typeof obj !== 'object' || !obj.type) return false;
-            const geoTypes = [
-                'Feature', 'FeatureCollection', 'Point', 'LineString', 'Polygon',
-                'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection'
-            ];
-            if (!geoTypes.includes(obj.type)) return false;
-            if (obj.type === 'FeatureCollection' && !Array.isArray(obj.features)) return false;
-            if (obj.type === 'Feature' && !obj.geometry) return false;
-            return true;
-        }
-
-        /**
-         * Checks if the object is a single Feature or FeatureCollection with one Feature,
-         * and the geometry is Polygon or MultiPolygon.
-         */
-        function isSinglePolygonOrMultiPolygonFeatureOrCollection(obj) {
-            if (
-                obj && obj.type === 'Feature' &&
-                obj.geometry &&
-                (obj.geometry.type === 'Polygon' || obj.geometry.type === 'MultiPolygon')
-            ) {
-                return true;
-            }
-            if (
-                obj && obj.type === 'FeatureCollection' &&
-                Array.isArray(obj.features) &&
-                obj.features.length === 1 &&
-                obj.features[0].type === 'Feature' &&
-                obj.features[0].geometry &&
-                (obj.features[0].geometry.type === 'Polygon' || obj.features[0].geometry.type === 'MultiPolygon')
-            ) {
-                return true;
-            }
-            return false;
-        }
-
-        // --- Main logic for handling file imports ---
-
-        // Store imported GeoJSON/CSV objects for later use
-        let polygonBoundaryGeoJSON = null;
-        let featuresGeoJSON = null;
-        let featuresCSV = null;
-        let featuresCSVHeaders = [];
-
-        /**
-         * Utility to parse CSV text into an array of objects using PapaParse.
-         * Assumes first line is header.
-         */
-        function parseCSV(text) {
-            const result = Papa.parse(text, { header: true, skipEmptyLines: true });
-            return { headers: result.meta.fields, rows: result.data };
-        }
-
-        /**
-         * Prompts the user to select the geometry column from CSV headers.
-         */
-        function promptForGeometryColumn(headers, onSelect) {
-            const selectorDiv = document.getElementById('featuresCSVColumnSelector');
-            selectorDiv.innerHTML = '';
-            const label = document.createElement('label');
-            label.textContent = 'Select geometry column:';
-            label.style.marginRight = '8px';
-            const select = document.createElement('select');
-            select.id = 'geometryColumnSelect2';
-            // Add default option
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = '-- Select geometry column --';
-            select.appendChild(defaultOption);
-            headers.forEach(h => {
-                const option = document.createElement('option');
-                option.value = h;
-                option.textContent = h;
-                select.appendChild(option);
-            });
-            const button = document.createElement('button');
-            button.textContent = 'Convert to GeoJSON';
-            button.style.marginLeft = '10px';
-            button.disabled = true;
-            // Enable button only when a valid column is selected
-            select.addEventListener('change', function() {
-                button.disabled = !select.value;
-            });
-            button.onclick = () => {
-                const statusDiv = document.getElementById('featuresFileStatus');
-                if (!select.value) {
-                    statusDiv.style.color = 'red';
-                    statusDiv.textContent = 'Please select a geometry column before converting.';
-                    select.style.borderColor = 'red';
-                    return;
-                }
-                select.style.borderColor = '';
-                onSelect(select.value, statusDiv);
-            };
-            selectorDiv.appendChild(label);
-            selectorDiv.appendChild(select);
-            selectorDiv.appendChild(button);
-        }
-
-        /**
-         * Converts CSV rows to a GeoJSON FeatureCollection using the selected geometry column.
-         * Now validates that at least one valid geometry exists.
-         */
-        function convertCSVtoGeoJSON(rows, geometryColumn) {
-            const features = rows.map(row => {
-                let geometry = null;
-                try {
-                    geometry = JSON.parse(row[geometryColumn]);
-                } catch (e) {
-                    geometry = null;
-                }
-                const properties = { ...row };
-                delete properties[geometryColumn];
-                return {
-                    type: 'Feature',
-                    geometry,
-                    properties
-                };
-            }).filter(f => f.geometry && f.geometry.type);
-            return {
-                type: 'FeatureCollection',
-                features
-            };
-        }
+        // Initialize file import handlers
+        handleFileImport('polygonBoundaryInput', 'polygonBoundaryStatus', { requireSinglePolygon: true, fileType: 'geojson' });
+        handleFileImport('featuresFileInput', 'featuresFileStatus');
 
         function handleFileImport(inputId, statusId, options = {}) {
             document.getElementById(inputId).addEventListener('change', function(event) {
@@ -363,6 +257,145 @@
             });
         }
 
+        // --- Utility functions for GeoJSON validation ---
+
+        /**
+         * Checks if the object is a valid GeoJSON object.
+         */
+        function isValidGeoJSON(obj) {
+            if (!obj || typeof obj !== 'object' || !obj.type) return false;
+            const geoTypes = [
+                'Feature', 'FeatureCollection', 'Point', 'LineString', 'Polygon',
+                'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection'
+            ];
+            if (!geoTypes.includes(obj.type)) return false;
+            if (obj.type === 'FeatureCollection' && !Array.isArray(obj.features)) return false;
+            if (obj.type === 'Feature' && !obj.geometry) return false;
+            return true;
+        }
+
+        /**
+         * Checks if the object is a single Feature or FeatureCollection with one Feature,
+         * and the geometry is Polygon or MultiPolygon.
+         */
+        function isSinglePolygonOrMultiPolygonFeatureOrCollection(obj) {
+            if (
+                obj && obj.type === 'Feature' &&
+                obj.geometry &&
+                (obj.geometry.type === 'Polygon' || obj.geometry.type === 'MultiPolygon')
+            ) {
+                return true;
+            }
+            if (
+                obj && obj.type === 'FeatureCollection' &&
+                Array.isArray(obj.features) &&
+                obj.features.length === 1 &&
+                obj.features[0].type === 'Feature' &&
+                obj.features[0].geometry &&
+                (obj.features[0].geometry.type === 'Polygon' || obj.features[0].geometry.type === 'MultiPolygon')
+            ) {
+                return true;
+            }
+            return false;
+        }
+
+        // Patch import logic to update compare button after import/conversion
+        function setPolygonBoundaryGeoJSON(val) { polygonBoundaryGeoJSON = val; updateCompareButton(); }
+        function setFeaturesGeoJSON(val) { featuresGeoJSON = val; updateCompareButton(); }
+        // Use these setters in import logic
+
+        // --- Main logic for handling file imports ---
+
+        // Store imported GeoJSON/CSV objects for later use
+        let polygonBoundaryGeoJSON = null;
+        let featuresGeoJSON = null;
+        let featuresCSV = null;
+        let featuresCSVHeaders = [];
+        // Store the features for export functionality
+        let withinFeatures = [];
+        let outsideFeatures = [];
+
+        /**
+         * Utility to parse CSV text into an array of objects using PapaParse.
+         * Assumes first line is header.
+         */
+        function parseCSV(text) {
+            const result = Papa.parse(text, { header: true, skipEmptyLines: true });
+            return { headers: result.meta.fields, rows: result.data };
+        }
+
+        /**
+         * Prompts the user to select the geometry column from CSV headers.
+         */
+        function promptForGeometryColumn(headers, onSelect) {
+            const selectorDiv = document.getElementById('featuresCSVColumnSelector');
+            selectorDiv.innerHTML = '';
+            const label = document.createElement('label');
+            label.textContent = 'Select geometry column:';
+            label.style.marginRight = '8px';
+            const select = document.createElement('select');
+            select.id = 'geometryColumnSelect2';
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '-- Select geometry column --';
+            select.appendChild(defaultOption);
+            headers.forEach(h => {
+                const option = document.createElement('option');
+                option.value = h;
+                option.textContent = h;
+                select.appendChild(option);
+            });
+            const button = document.createElement('button');
+            button.textContent = 'Convert to GeoJSON';
+            button.style.marginLeft = '10px';
+            button.disabled = true;
+            // Enable button only when a valid column is selected
+            select.addEventListener('change', function() {
+                button.disabled = !select.value;
+            });
+            button.onclick = () => {
+                const statusDiv = document.getElementById('featuresFileStatus');
+                if (!select.value) {
+                    statusDiv.style.color = 'red';
+                    statusDiv.textContent = 'Please select a geometry column before converting.';
+                    select.style.borderColor = 'red';
+                    return;
+                }
+                select.style.borderColor = '';
+                onSelect(select.value, statusDiv);
+            };
+            selectorDiv.appendChild(label);
+            selectorDiv.appendChild(select);
+            selectorDiv.appendChild(button);
+        }
+
+        /**
+         * Converts CSV rows to a GeoJSON FeatureCollection using the selected geometry column.
+         * Now validates that at least one valid geometry exists.
+         */
+        function convertCSVtoGeoJSON(rows, geometryColumn) {
+            const features = rows.map(row => {
+                let geometry = null;
+                try {
+                    geometry = JSON.parse(row[geometryColumn]);
+                } catch (e) {
+                    geometry = null;
+                }
+                const properties = { ...row };
+                delete properties[geometryColumn];
+                return {
+                    type: 'Feature',
+                    geometry,
+                    properties
+                };
+            }).filter(f => f.geometry && f.geometry.type);
+            return {
+                type: 'FeatureCollection',
+                features
+            };
+        }
+
         // Enable/disable compare button based on import status
         function updateCompareButton() {
             const btn = document.getElementById('compareBtn');
@@ -395,8 +428,8 @@
             if (polygon.type === 'FeatureCollection') polygon = polygon.features[0];
             const polyGeom = polygon.geometry;
             // Compare each feature in file 2
-            const withinFeatures = [];
-            const outsideFeatures = [];
+            withinFeatures = [];
+            outsideFeatures = [];
             featuresGeoJSON.features.forEach((feat, idx) => {
                 try {
                     if (feat.geometry && (feat.geometry.type === 'Point' || feat.geometry.type === 'Polygon' || feat.geometry.type === 'MultiPolygon' || feat.geometry.type === 'LineString' || feat.geometry.type === 'MultiLineString')) {
@@ -418,20 +451,109 @@
                 <span style='color:green;'>${withinFeatures.length}</span> out of <span style='color:blue;'>${featuresGeoJSON.features.length}</span> features are <b>within</b> the polygon.<br>`;
             if (withinFeatures.length) {
                 resultsDiv.innerHTML += `<details><summary>Show features within</summary><ol>${withinFeatures.map(f => `<li>Feature #${f.idx+1} (${f.feat.geometry.type})</li>`).join('')}</ol></details>`;
+                resultsDiv.innerHTML += `<div class="export-buttons">
+                    <button class="export-btn" id="export-within-geojson">Export Within (GeoJSON)</button>
+                    <button class="export-btn" id="export-within-csv">Export Within (CSV)</button>
+                </div>`;
             }
             if (outsideFeatures.length) {
                 resultsDiv.innerHTML += `<details><summary>Show features outside</summary><ol>${outsideFeatures.map(f => `<li>Feature #${f.idx+1} (${f.feat.geometry ? f.feat.geometry.type : 'No geometry'})</li>`).join('')}</ol></details>`;
+                resultsDiv.innerHTML += `<div class="export-buttons">
+                    <button class="export-btn" id="export-outside-geojson">Export Outside (GeoJSON)</button>
+                    <button class="export-btn" id="export-outside-csv">Export Outside (CSV)</button>
+                </div>`;
+            }
+            
+            // Add event listeners for export buttons
+            if (withinFeatures.length) {
+                document.getElementById('export-within-geojson').addEventListener('click', function() {
+                    exportFeatures(withinFeatures, 'within', 'geojson');
+                });
+                document.getElementById('export-within-csv').addEventListener('click', function() {
+                    exportFeatures(withinFeatures, 'within', 'csv');
+                });
+            }
+            
+            if (outsideFeatures.length) {
+                document.getElementById('export-outside-geojson').addEventListener('click', function() {
+                    exportFeatures(outsideFeatures, 'outside', 'geojson');
+                });
+                document.getElementById('export-outside-csv').addEventListener('click', function() {
+                    exportFeatures(outsideFeatures, 'outside', 'csv');
+                });
             }
         });
 
-        // Patch import logic to update compare button after import/conversion
-        function setPolygonBoundaryGeoJSON(val) { polygonBoundaryGeoJSON = val; updateCompareButton(); }
-        function setFeaturesGeoJSON(val) { featuresGeoJSON = val; updateCompareButton(); }
-        // Use these setters in import logic
+        /**
+         * Export features as GeoJSON or CSV file
+         * @param {Array} features - Array of feature objects with idx and feat properties
+         * @param {string} type - Either 'within' or 'outside'
+         * @param {string} format - Either 'geojson' or 'csv'
+         */
+        function exportFeatures(features, type, format) {
+            if (!features || !features.length) return;
 
-        // Initialize file import handlers
-        handleFileImport('polygonBoundaryInput', 'polygonBoundaryStatus', { requireSinglePolygon: true, fileType: 'geojson' });
-        handleFileImport('featuresFileInput', 'featuresFileStatus');
+            // Extract just the feature objects, not the indices
+            const extractedFeatures = features.map(item => item.feat);
+            
+            let content, filename, mime;
+            
+            if (format === 'geojson') {
+                // Create a GeoJSON FeatureCollection
+                const geojson = {
+                    type: 'FeatureCollection',
+                    features: extractedFeatures
+                };
+                content = JSON.stringify(geojson, null, 2);
+                filename = `features_${type}_polygon.geojson`;
+                mime = 'application/geo+json';
+            } else {
+                // Convert to CSV
+                // First get all unique property keys
+                const propertyKeys = new Set();
+                extractedFeatures.forEach(feat => {
+                    if (feat.properties) {
+                        Object.keys(feat.properties).forEach(key => propertyKeys.add(key));
+                    }
+                });
+                
+                // Add geometry column
+                propertyKeys.add('geometry');
+                
+                // Create CSV header row
+                const headers = Array.from(propertyKeys);
+                let csv = headers.join(',') + '\n';
+                
+                // Add rows for each feature
+                extractedFeatures.forEach(feat => {
+                    const row = headers.map(key => {
+                        if (key === 'geometry') {
+                            return JSON.stringify(feat.geometry);
+                        } else {
+                            const val = feat.properties && feat.properties[key] !== undefined ? 
+                                feat.properties[key] : '';
+                            // Handle values that might contain commas by quoting them
+                            return typeof val === 'string' && (val.includes(',') || val.includes('"')) ?
+                                `"${val.replace(/"/g, '""')}"` : val;
+                        }
+                    });
+                    csv += row.join(',') + '\n';
+                });
+                
+                content = csv;
+                filename = `features_${type}_polygon.csv`;
+                mime = 'text/csv';
+            }
+            
+            // Create and trigger download
+            const blob = new Blob([content], { type: mime });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>
