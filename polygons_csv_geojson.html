@@ -25,18 +25,135 @@
         </div>
         <div class="main-card light-green-card">
             <div class="main-section">
-                <label for="geojsonKey">Enter Column Name for Polygon Geometry:</label>
-                <input type="text" id="geojsonKey" placeholder="e.g., Boundary Polygon" />
+                <label for="fileInput">Import CSV File:</label>
                 <input type="file" id="fileInput" accept=".csv" />
+                <label for="polygonColumnSelect">Select Polygon Geometry Column:</label>
+                <select id="polygonColumnSelect" disabled></select>
                 <button id="convertButton" disabled>Convert to GeoJSON</button>
                 <p id="error"></p>
             </div>
             <div class="main-section">
                 <h2 class="tool-title" style="font-size:1.1em; margin-bottom:10px; text-align:left;">Preview:</h2>
-                <pre id="preview">No data loaded yet.</pre>
+                <button id="togglePreviewBtn" style="margin-bottom:10px;">Show Preview</button>
+                <pre id="preview" style="display:none;">No data loaded yet.</pre>
+                <button id="downloadGeoJSONBtn" style="margin-top:12px; display:none;">Download GeoJSON</button>
             </div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script>
+    // CSV to GeoJSON for Polygons
+    let csvHeaders = [];
+    let csvRows = [];
+    let selectedColumn = null;
+
+    const fileInput = document.getElementById('fileInput');
+    const polygonColumnSelect = document.getElementById('polygonColumnSelect');
+    const convertButton = document.getElementById('convertButton');
+    const errorP = document.getElementById('error');
+    const preview = document.getElementById('preview');
+
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        errorP.textContent = '';
+        polygonColumnSelect.innerHTML = '';
+        polygonColumnSelect.disabled = true;
+        convertButton.disabled = true;
+        preview.textContent = 'No data loaded yet.';
+        if (!file) return;
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                csvHeaders = results.meta.fields;
+                csvRows = results.data;
+                if (!csvHeaders || !csvHeaders.length) {
+                    errorP.textContent = 'No headers found in CSV.';
+                    return;
+                }
+                // Populate select
+                polygonColumnSelect.innerHTML = '<option value="">-- Select column --</option>' +
+                    csvHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+                polygonColumnSelect.disabled = false;
+            },
+            error: function() {
+                errorP.textContent = 'Failed to parse CSV.';
+            }
+        });
+    });
+
+    polygonColumnSelect.addEventListener('change', function() {
+        selectedColumn = polygonColumnSelect.value;
+        convertButton.disabled = !selectedColumn;
+        errorP.textContent = '';
+    });
+
+    convertButton.addEventListener('click', function() {
+        if (!selectedColumn) {
+            errorP.textContent = 'Please select a polygon geometry column.';
+            return;
+        }
+        const features = csvRows.map(row => {
+            let geometry = null;
+            try {
+                geometry = JSON.parse(row[selectedColumn]);
+            } catch (e) {
+                geometry = null;
+            }
+            const properties = { ...row };
+            delete properties[selectedColumn];
+            return geometry && geometry.type ? {
+                type: 'Feature',
+                geometry,
+                properties
+            } : null;
+        }).filter(f => f);
+        if (!features.length) {
+            errorP.textContent = 'No valid polygon geometries found.';
+            preview.textContent = 'No data loaded yet.';
+            document.getElementById('downloadGeoJSONBtn').style.display = 'none';
+            preview.style.display = 'none';
+            togglePreviewBtn.textContent = 'Show Preview';
+            return;
+        }
+        const geojson = {
+            type: 'FeatureCollection',
+            features
+        };
+        preview.textContent = JSON.stringify(geojson, null, 2);
+        errorP.textContent = '';
+        // Show download button
+        const downloadBtn = document.getElementById('downloadGeoJSONBtn');
+        downloadBtn.style.display = 'inline-block';
+        // Reset preview state
+        preview.style.display = 'none';
+        togglePreviewBtn.textContent = 'Show Preview';
+        downloadBtn.onclick = function() {
+            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'polygons.geojson';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+    });
+
+    // Add preview toggle logic
+    const togglePreviewBtn = document.getElementById('togglePreviewBtn');
+    togglePreviewBtn.addEventListener('click', function() {
+        const isVisible = preview.style.display !== 'none';
+        if (isVisible) {
+            preview.style.display = 'none';
+            togglePreviewBtn.textContent = 'Show Preview';
+        } else {
+            preview.style.display = 'block';
+            togglePreviewBtn.textContent = 'Hide Preview';
+        }
+    });
+    </script>
     <script src="js/main.js"></script>
 </body>
 </html>
