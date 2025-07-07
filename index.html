@@ -54,18 +54,6 @@
             </div>
         </main>
     </div>
-    <script>
-        // Highlight current page in sidebar
-        const path = window.location.pathname.split('/').pop();
-        if (path === '' || path === 'index.html') {
-            document.getElementById('nav-home').classList.add('active');
-        } else if (path === 'features_within_polygon.html') {
-            document.getElementById('nav-features').classList.add('active');
-        } else if (path === 'polygons_csv_geojson.html') {
-            document.getElementById('nav-csv').classList.add('active');
-        } else if (path === 'gps_points_csv_geojson.html') {
-            document.getElementById('nav-gps').classList.add('active');
-        }
-    </script>
+    <script src="js/main.js"></script>
 </body>
 </html>
