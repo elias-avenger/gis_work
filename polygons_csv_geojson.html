@@ -22,15 +22,19 @@
         <div class="tool-card light-green-card">
             <div class="tool-title">CSV to GeoJSON Converter</div>
             <div class="tool-desc">Easily convert a CSV file of polygons to a valid GeoJSON file for mapping and analysis.</div>
-            <label for="geojsonKey">Enter Column Name for Polygon Geometry:</label>
-            <input type="text" id="geojsonKey" placeholder="e.g., Boundary Polygon" />
-            <input type="file" id="fileInput" accept=".csv" />
-            <button id="convertButton" disabled>Convert to GeoJSON</button>
-            <p id="error"></p>
         </div>
-        <div class="tool-card preview-card">
-            <h2 class="tool-title" style="font-size:1.3em; margin-bottom:12px;">Preview:</h2>
-            <pre id="preview">No data loaded yet.</pre>
+        <div class="main-card light-green-card">
+            <div class="main-section">
+                <label for="geojsonKey">Enter Column Name for Polygon Geometry:</label>
+                <input type="text" id="geojsonKey" placeholder="e.g., Boundary Polygon" />
+                <input type="file" id="fileInput" accept=".csv" />
+                <button id="convertButton" disabled>Convert to GeoJSON</button>
+                <p id="error"></p>
+            </div>
+            <div class="main-section">
+                <h2 class="tool-title" style="font-size:1.1em; margin-bottom:10px; text-align:left;">Preview:</h2>
+                <pre id="preview">No data loaded yet.</pre>
+            </div>
         </div>
     </div>
     <script>

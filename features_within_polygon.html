@@ -19,17 +19,17 @@
         <div class="sidebar-footer">&copy; 2025 GIS Workbench</div>
     </nav>
     <div class="main-content">
-        <div class="tool-card light-green-card" style="margin-bottom: 32px;">
+        <div class="tool-card light-green-card">
             <div class="tool-title">Check Features Within Polygon</div>
             <div class="tool-desc">Upload a polygon and a set of features (GeoJSON or CSV) to see which features are contained within the boundary.</div>
         </div>
-        <div class="tool-card light-green-card">
-            <div class="tool-card" style="margin-bottom: 18px;">
+        <div class="main-card light-green-card">
+            <div class="main-section">
                 <label for="polygonBoundaryInput">Polygon Boundary (GeoJSON):</label><br>
                 <input type="file" id="polygonBoundaryInput" accept="application/geo+json,application/json,.geojson,.json" />
                 <div id="polygonBoundaryStatus"></div>
             </div>
-            <div class="tool-card" style="margin-bottom: 18px;">
+            <div class="main-section">
                 <label for="featuresFileInput">Features File (CSV or GeoJSON):</label>
                 <select id="featuresFileTypeSelect" style="margin-left:10px;">
                     <option value="csv">CSV</option>
@@ -39,8 +39,10 @@
                 <div id="featuresCSVColumnSelector"></div>
                 <div id="featuresFileStatus"></div>
             </div>
-            <div class="tool-card" style="text-align:center; background:#fff; box-shadow:0 4px 18px rgba(46,125,50,0.10); padding-bottom:0; margin-bottom:0;">
+            <div class="main-section" style="text-align:center; background:none; box-shadow:none; padding-bottom:0;">
                 <button id="compareBtn" disabled>Compare Features</button>
+            </div>
+            <div class="main-section" style="background:none; box-shadow:none;">
                 <div id="compareResults"></div>
             </div>
         </div>

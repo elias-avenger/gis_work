@@ -87,6 +87,8 @@ main {
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-height: 100vh;
+    padding-bottom: 40px;
 }
 .features {
     display: flex;
@@ -144,7 +146,8 @@ main {
     box-shadow: 0 4px 16px rgba(46,125,50,0.18);
 }
 .tool-card {
-    background: #fff;
+    background: #f8fff8;
+    border: 2px solid #c8e6c9;
     border-radius: 16px;
     box-shadow: 0 4px 18px rgba(46,125,50,0.10);
     padding: 20px 20px 18px 20px; /* reduced vertical padding */
@@ -283,6 +286,48 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     font-weight: 500;
     cursor: pointer;
 }
+/* Main section content card for forms, previews, and results */
+.main-card {
+    /* background: #fff; */
+    border: 2px solid #e0e0e0;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(46,125,50,0.10);
+    padding: 22px 28px;
+    margin: 24px auto 0 auto;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+}
+
+/* Center and size input fields and controls inside .main-card */
+.main-card form, .main-card .form-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+.main-card label, .main-card input, .main-card select, .main-card button, .main-card .export-buttons {
+    width: 100%;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Main section sub-sections (input fields, preview/results) */
+.main-card .main-section {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(46,125,50,0.06);
+    margin: 18px auto;
+    padding: 20px 18px;
+    width: 100%;
+    max-width: 420px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 @media (max-width: 900px) {
     .features {
         flex-direction: column;
@@ -317,6 +362,19 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
         box-shadow: 0 2px 8px rgba(46,125,50,0.10);
     }
     .tool-card { margin: 32px 8px 0 8px; }
+    .main-card {
+        margin: 32px 8px 0 8px;
+        padding: 18px 8px;
+    }
+    .main-card label, .main-card input, .main-card select, .main-card button, .main-card .export-buttons {
+        max-width: 100%;
+    }
+}
+@media (max-width: 600px) {
+    .main-card .main-section {
+        max-width: 100%;
+        padding: 14px 4px;
+    }
 }
 @media (min-width: 901px) {
     .sidebar-toggle {
