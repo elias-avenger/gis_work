@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
     <nav class="sidebar open">
         <img src="images/kijnai_logo.png" alt="GIS Workbench Logo" class="logo-img" />
         <h1>GIS Workbench</h1>
@@ -38,117 +37,6 @@
             </div>
         </div>
     </div>
-    <script>
-      let csvData = "";
-
-      document.getElementById("fileInput").addEventListener("change", (event) => {
-        const file = event.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            csvData = e.target.result;
-            document.getElementById("convertButton").disabled = false;
-            document.getElementById("error").textContent = "";
-          };
-          reader.onerror = () => {
-            document.getElementById("error").textContent = "Error reading file.";
-          };
-          reader.readAsText(file);
-        }
-      });
-
-      document.getElementById("convertButton").addEventListener("click", () => {
-        try {
-          const geojsonKey = document.getElementById("geojsonKey").value.trim();
-          if (!geojsonKey) {
-            throw new Error("Please enter the column name for geometry.");
-          }
-          const geojson = convertCSVToGeoJSON(csvData, geojsonKey);
-          displayGeoJSONPreview(geojson);
-          downloadGeoJSON(geojson);
-        } catch (error) {
-          document.getElementById("error").textContent = `Error during conversion: ${error.message}`;
-          console.error(error);
-        }
-      });
-
-      function convertCSVToGeoJSON(csv, geojsonKey) {
-        if (!csv) throw new Error("No CSV data to process.");
-
-        const rows = csv.split("\n").filter((row) => row.trim() !== "");
-        const headers = rows[0].split(",").map((header) => header.trim());
-
-        const features = rows.slice(1).map((row, rowIndex) => {
-          const values = row.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
-          const feature = {
-            type: "Feature",
-            properties: {},
-            geometry: null,
-          };
-
-          headers.forEach((header, index) => {
-            const key = header.trim();
-            let value = values[index] ? values[index].trim() : null;
-
-            console.log(value)
-            console.log('key', key)
-
-            if (key === geojsonKey && value) {
-              try {
-                if (value.startsWith('"') && value.endsWith('"')) {
-                  value = value.slice(1, -1);
-                }
-                value = value.replace(/""/g, '"');
-
-                let geometry = JSON.parse(value);
-
-                geometry.coordinates = geometry.coordinates.map((ring) =>
-                  ring.map((coord) => {
-                    if (coord.length === 2) {
-                      return coord; // Keep 2D coordinates
-                    }
-                    return coord.slice(0, 3); // Ensure only 3D
-                  })
-                );
-
-                feature.geometry = geometry;
-              } catch (e) {
-                throw new Error(`Row ${rowIndex + 1} has invalid geometry: ${value}`);
-              }
-            } else if (key) {
-              feature.properties[key] = value;
-            }
-          });
-
-          return feature.geometry ? feature : null;
-        });
-
-        return {
-          type: "FeatureCollection",
-          features: features.filter((f) => f !== null),
-        };
-      }
-
-      function displayGeoJSONPreview(geojson) {
-        if (!geojson || !geojson.features || geojson.features.length === 0) {
-          throw new Error("GeoJSON has no valid features.");
-        }
-        const previewElement = document.getElementById("preview");
-        previewElement.textContent = JSON.stringify(geojson, null, 2);
-      }
-
-      function downloadGeoJSON(geojson) {
-        const blob = new Blob([JSON.stringify(geojson, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `data_${new Date().toISOString().replace(/[:.]/g, "-")}.geojson`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    </script>
+    <script src="js/main.js"></script>
 </body>
 </html>
