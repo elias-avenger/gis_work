@@ -15,6 +15,7 @@
             <a href="index.html" class="nav-link" id="nav-home">Home</a>
             <a href="features_within_polygon.html" class="nav-link" id="nav-features">Check Features Within Polygon</a>
             <a href="polygons_csv_geojson.html" class="nav-link" id="nav-csv">Convert Polygons CSV to GeoJSON</a>
+            <a href="gps_points_csv_geojson.html" class="nav-link" id="nav-gps">CSV GPS Points to GeoJSON</a>
         </div>
         <div class="sidebar-footer">&copy; 2025 GIS Workbench</div>
     </nav>
@@ -39,6 +40,12 @@
                     <a class="feature-link" href="polygons_csv_geojson.html">Convert Now</a>
                 </div>
                 <div class="feature-card">
+                    <div class="feature-icon">🧭</div>
+                    <div class="feature-title">CSV GPS Points to GeoJSON</div>
+                    <div class="feature-desc">Convert a CSV of GPS points to a GeoJSON FeatureCollection. Each row becomes a Point feature with all other fields as properties.</div>
+                    <a class="feature-link" href="gps_points_csv_geojson.html">Convert GPS Points</a>
+                </div>
+                <div class="feature-card">
                     <div class="feature-icon">🧪</div>
                     <div class="feature-title">Features Within Polygon (Demo/Test)</div>
                     <div class="feature-desc">Try a demo or test the features-within-polygon tool with sample data.</div>
@@ -56,6 +63,8 @@
             document.getElementById('nav-features').classList.add('active');
         } else if (path === 'polygons_csv_geojson.html') {
             document.getElementById('nav-csv').classList.add('active');
+        } else if (path === 'gps_points_csv_geojson.html') {
+            document.getElementById('nav-gps').classList.add('active');
         }
     </script>
 </body>
