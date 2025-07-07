@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Turf.js Polygon Overlap Detector (Airtable API with Robust Polygon Cleaning)</title>
+    <title>Kijani Forestry Garden Overlap Detector - Turf.js </title>
     <!-- Tailwind CSS for basic styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter font -->
@@ -11,7 +11,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            background-color: #F0FDF4; /* Kijani Light Green */
         }
         .container {
             max-width: 900px;
@@ -22,7 +22,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         pre {
-            background-color: #e2e8f0;
+            background-color: #D1FAE5; /* Kijani Lighter Green */
             padding: 15px;
             border-radius: 8px;
             overflow-x: auto;
@@ -32,7 +32,7 @@
         }
         .loading-spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #2563eb;
+            border-left-color: #059669; /* Kijani Green */
             border-radius: 50%;
             width: 24px;
             height: 24px;
@@ -47,11 +47,14 @@
         }
     </style>
 </head>
-<body>
+<body class="bg-green-50">
     <div class="container">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Turf.js Garden Polygon Overlap Detector (Airtable API with Robust Polygon Cleaning)</h1>
+        <div class="text-center mb-8">
+            <img src="images/kijnai_logo.png" alt="Kijani Forestry Logo" class="mx-auto h-24 w-auto">
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Garden Polygon Overlap Detector</h1>
         <p class="text-gray-700 mb-4">
-            Enter your Airtable API details below to fetch garden polygon data and detect overlaps.
+            Enter Airtable API details below to fetch garden polygon data and detect overlaps.
             This version includes robust polygon cleaning steps (rewinding and zero-buffering) to handle common GeoJSON validity issues.
         </p>
 
@@ -60,35 +63,35 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label for="airtableApiKey" class="block text-sm font-medium text-gray-700">Airtable API Key:</label>
-                    <input type="password" id="airtableApiKey" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" value="" placeholder="YOUR_AIRTABLE_API_KEY">
+                    <input type="password" id="airtableApiKey" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="" placeholder="AIRTABLE_API_KEY">
                 </div>
                 <div>
                     <label for="airtableBaseId" class="block text-sm font-medium text-gray-700">Airtable Base ID:</label>
-                    <input type="text" id="airtableBaseId" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="YOUR_AIRTABLE_BASE_ID">
+                    <input type="text" id="airtableBaseId" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="AIRTABLE_BASE_ID">
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label for="airtableTableName" class="block text-sm font-medium text-gray-700">Airtable Table Name:</label>
-                    <input type="text" id="airtableTableName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" value="Gardens" placeholder="Your Table Name (e.g., Gardens)">
+                    <input type="text" id="airtableTableName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="Gardens" placeholder="Your Table Name (e.g., Gardens)">
                 </div>
                 <div>
                     <label for="geojsonFieldName" class="block text-sm font-medium text-gray-700">GeoJSON Field Name:</label>
-                    <input type="text" id="geojsonFieldName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" value="Polygon GeoJSON" placeholder="e.g., Coordinates, PolygonData">
+                    <input type="text" id="geojsonFieldName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="Polygon GeoJSON" placeholder="e.g., Coordinates, PolygonData">
                 </div>
             </div>
             <div class="mb-4">
                 <label for="airtableViewName" class="block text-sm font-medium text-gray-700">Airtable View Name (Optional):</label>
-                <input type="text" id="airtableViewName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" value="kato's view" placeholder="e.g., Grid view, My Filtered View">
+                <input type="text" id="airtableViewName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="kato's view" placeholder="e.g., Grid view, My Filtered View">
             </div>
             <div class="mb-4">
                 <label for="fieldsToFetch" class="block text-sm font-medium text-gray-700">Fields to Fetch (comma-separated):</label>
-                <input type="text" id="fieldsToFetch" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" value="Farmer Name,ID,Polygon GeoJSON" placeholder="e.g., Farmer Name,ID,Coordinates">
+                <input type="text" id="fieldsToFetch" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="Farmer Name,ID,Polygon GeoJSON" placeholder="e.g., Farmer Name,ID,Coordinates">
                 <p class="text-xs text-gray-500 mt-1">
                     *Important: Include your 'Name' field (e.g., 'Farmer Name') and your 'GeoJSON Field Name' (e.g., 'Polygon GeoJSON') in this list.
                 </p>
             </div>
-            <button id="fetchGardensBtn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 flex items-center justify-center">
+            <button id="fetchGardensBtn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-200 flex items-center justify-center">
                 <span id="buttonText">Fetch Gardens & Detect Overlaps</span>
                 <span id="loadingIndicator" class="loading-spinner hidden"></span>
             </button>
@@ -144,7 +147,7 @@
             outputDiv.innerHTML = '<p class="text-gray-600">Initializing...</p>';
             totalOverlapsDiv.innerHTML = '';
             performanceMetricsDiv.innerHTML = '';
-            fetchStatusDiv.className = 'mt-3 text-sm text-center text-blue-600';
+            fetchStatusDiv.className = 'mt-3 text-sm text-center text-green-600';
             fetchStatusDiv.textContent = 'Ready to fetch.';
             fetchButton.disabled = true;
             buttonText.textContent = 'Fetching...';
@@ -407,10 +410,10 @@
                                     if (intersectionGeometry) {
                                         const overlapArea = turf.area(intersectionGeometry);
                                         const overlapItem = document.createElement('div');
-                                        overlapItem.className = 'bg-blue-50 p-4 rounded-lg border border-blue-200';
+                                        overlapItem.className = 'bg-green-50 p-4 rounded-lg border border-green-200';
                                         overlapItem.innerHTML = `
-                                            <h3 class="text-lg font-medium text-blue-800">Overlap between ${poly1Name} and ${poly2Name}:</h3>
-                                            <p class="text-blue-700">
+                                            <h3 class="text-lg font-medium text-green-800">Overlap between ${poly1Name} and ${poly2Name}:</h3>
+                                            <p class="text-green-700">
                                                 Intersection Area: <strong class="font-semibold">${overlapArea.toFixed(2)} square meters</strong>
                                             </p>
                                         `;
