@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSV GPS Points to GeoJSON</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+    <nav class="sidebar open">
+        <img src="logo.png" alt="GIS Workbench Logo" class="logo-img" />
+        <h1>GIS Workbench</h1>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link" id="nav-home">Home</a>
+            <a href="features_within_polygon.html" class="nav-link" id="nav-features">Check Features Within Polygon</a>
+            <a href="polygons_csv_geojson.html" class="nav-link" id="nav-csv">Convert Polygons CSV to GeoJSON</a>
+            <a href="gps_points_csv_geojson.html" class="nav-link active" id="nav-gps">CSV GPS Points to GeoJSON</a>
+        </div>
+        <div class="sidebar-footer">&copy; 2025 GIS Workbench</div>
+    </nav>
+    <div class="main-content">
+        <div class="tool-card light-green-card">
+            <div class="tool-title">CSV GPS Points to GeoJSON</div>
+            <div class="tool-desc">Convert a CSV of GPS points to a GeoJSON FeatureCollection. Each row becomes a Point feature with all other fields as properties.</div>
+        </div>
+        <div class="main-card light-green-card">
+            <div class="main-section">
+                <label for="gpsFileInput">Upload CSV File of GPS Points:</label>
+                <input type="file" id="gpsFileInput" accept=".csv" />
+                <div id="gpsFileStatus"></div>
+            </div>
+            <div class="main-section" id="columnSelectorSection" style="display:none;">
+                <label for="latColumn">Select Latitude Column:</label>
+                <select id="latColumn"></select>
+                <label for="lonColumn">Select Longitude Column:</label>
+                <select id="lonColumn"></select>
+                <button id="convertGpsBtn">Convert to GeoJSON</button>
+            </div>
+            <div class="main-section" id="downloadSection" style="display:none;">
+                <button id="downloadGeoJsonBtn">Download GeoJSON</button>
+            </div>
+            <div class="main-section">
+                <h2 class="tool-title" style="font-size:1.1em; margin-bottom:10px; text-align:left;">Preview:</h2>
+                <pre id="gpsPreview">No data loaded yet.</pre>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script>
+    let csvRows = [];
+    let geojson = null;
+    let headers = [];
+    document.getElementById('gpsFileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                csvRows = results.data;
+                headers = results.meta.fields;
+                document.getElementById('gpsPreview').textContent = JSON.stringify(csvRows.slice(0, 5), null, 2) + (csvRows.length > 5 ? '\n... (' + csvRows.length + ' rows)' : '');
+                document.getElementById('gpsFileStatus').textContent = 'Loaded ' + csvRows.length + ' rows.';
+                // Populate column selectors
+                const latSel = document.getElementById('latColumn');
+                const lonSel = document.getElementById('lonColumn');
+                latSel.innerHTML = '';
+                lonSel.innerHTML = '';
+                headers.forEach(h => {
+                    const opt1 = document.createElement('option');
+                    opt1.value = h; opt1.textContent = h;
+                    latSel.appendChild(opt1.cloneNode(true));
+                    lonSel.appendChild(opt1);
+                });
+                document.getElementById('columnSelectorSection').style.display = '';
+                document.getElementById('downloadSection').style.display = 'none';
+            }
+        });
+    });
+    document.getElementById('convertGpsBtn').addEventListener('click', function() {
+        const latCol = document.getElementById('latColumn').value;
+        const lonCol = document.getElementById('lonColumn').value;
+        if (!latCol || !lonCol) return alert('Please select both latitude and longitude columns.');
+        geojson = {
+            type: 'FeatureCollection',
+            features: csvRows.map(row => {
+                const lat = parseFloat(row[latCol]);
+                const lon = parseFloat(row[lonCol]);
+                if (isNaN(lat) || isNaN(lon)) return null;
+                const props = {...row};
+                delete props[latCol];
+                delete props[lonCol];
+                return {
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [lon, lat] },
+                    properties: props
+                };
+            }).filter(f => f)
+        };
+        document.getElementById('gpsPreview').textContent = JSON.stringify(geojson, null, 2);
+        document.getElementById('downloadSection').style.display = '';
+    });
+    document.getElementById('downloadGeoJsonBtn').addEventListener('click', function() {
+        if (!geojson) return;
+        const blob = new Blob([JSON.stringify(geojson, null, 2)], {type: 'application/geo+json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'gps_points.geojson';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    });
+    </script>
+</body>
+</html>
