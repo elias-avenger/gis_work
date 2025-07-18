@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kijani Forestry Garden Overlap Detector - Turf.js </title>
+    <!-- Tailwind CSS for basic styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F0FDF4; /* Kijani Light Green */
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        pre {
+            background-color: #D1FAE5; /* Kijani Lighter Green */
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.875rem;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #059669; /* Kijani Green */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-green-50">
+    <div class="container">
+        <div class="text-center mb-8">
+            <img src="images/kijnai_logo.png" alt="Kijani Forestry Logo" class="mx-auto h-24 w-auto">
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Garden Polygon Overlap Detector</h1>
+        <p class="text-gray-700 mb-4">
+            Enter Airtable API details below to fetch garden polygon data and detect overlaps.
+            This version includes robust polygon cleaning steps (rewinding and zero-buffering) to handle common GeoJSON validity issues.
+        </p>
+
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800 mb-3">Airtable Configuration</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="airtableApiKey" class="block text-sm font-medium text-gray-700">Airtable API Key:</label>
+                    <input type="password" id="airtableApiKey" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="" placeholder="AIRTABLE_API_KEY">
+                </div>
+                <div>
+                    <label for="airtableBaseId" class="block text-sm font-medium text-gray-700">Airtable Base ID:</label>
+                    <input type="text" id="airtableBaseId" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="AIRTABLE_BASE_ID">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="airtableTableName" class="block text-sm font-medium text-gray-700">Airtable Table Name:</label>
+                    <input type="text" id="airtableTableName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="Gardens" placeholder="Your Table Name (e.g., Gardens)">
+                </div>
+                <div>
+                    <label for="geojsonFieldName" class="block text-sm font-medium text-gray-700">GeoJSON Field Name:</label>
+                    <input type="text" id="geojsonFieldName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="Polygon GeoJSON" placeholder="e.g., Coordinates, PolygonData">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label for="airtableViewName" class="block text-sm font-medium text-gray-700">Airtable View Name (Optional):</label>
+                <input type="text" id="airtableViewName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="kato's view" placeholder="e.g., Grid view, My Filtered View">
+            </div>
+            <div class="mb-4">
+                <label for="fieldsToFetch" class="block text-sm font-medium text-gray-700">Fields to Fetch (comma-separated):</label>
+                <input type="text" id="fieldsToFetch" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" value="Farmer Name,ID,Polygon GeoJSON" placeholder="e.g., Farmer Name,ID,Coordinates">
+                <p class="text-xs text-gray-500 mt-1">
+                    *Important: Include your 'Name' field (e.g., 'Farmer Name') and your 'GeoJSON Field Name' (e.g., 'Polygon GeoJSON') in this list.
+                </p>
+            </div>
+            <button id="fetchGardensBtn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-200 flex items-center justify-center">
+                <span id="buttonText">Fetch Gardens & Detect Overlaps</span>
+                <span id="loadingIndicator" class="loading-spinner hidden"></span>
+            </button>
+            <div id="fetchStatus" class="mt-3 text-sm text-center text-gray-700"></div>
+        </div>
+
+        <div id="results" class="mt-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Overlap Results:</h2>
+            <div id="overlap-output" class="space-y-4">
+                <!-- Overlap results will be inserted here by JavaScript -->
+                <p class="text-gray-600">Enter Airtable details and click "Fetch Gardens" to begin.</p>
+            </div>
+            <div id="total-overlaps" class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200 text-green-800 font-semibold">
+                <!-- Total overlaps count will be inserted here -->
+            </div>
+            <div id="performance-metrics" class="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200 text-yellow-800 font-semibold text-sm">
+                <!-- Performance metrics will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Turf.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+    <script>
+        // Custom function to check if two bounding boxes overlap
+        // A bounding box is [minX, minY, maxX, maxY]
+        function bboxesOverlap(bbox1, bbox2) {
+            return bbox1[0] < bbox2[2] && // bbox1.minX < bbox2.maxX
+                   bbox1[2] > bbox2[0] && // bbox1.maxX > bbox2.minX
+                   bbox1[1] < bbox2[3] && // bbox1.minY < bbox2.maxY
+                   bbox1[3] > bbox2[1];   // bbox1.maxY > bbox2.minY
+        }
+
+        // Main function to fetch gardens and detect overlaps
+        async function fetchAndDetectOverlaps() {
+            const apiKey = document.getElementById('airtableApiKey').value.trim();
+            const baseId = document.getElementById('airtableBaseId').value.trim();
+            const tableName = document.getElementById('airtableTableName').value.trim();
+            const geojsonFieldName = document.getElementById('geojsonFieldName').value.trim();
+            const viewName = document.getElementById('airtableViewName').value.trim();
+            const fieldsToFetchRaw = document.getElementById('fieldsToFetch').value.trim();
+
+            const outputDiv = document.getElementById('overlap-output');
+            const totalOverlapsDiv = document.getElementById('total-overlaps');
+            const performanceMetricsDiv = document.getElementById('performance-metrics');
+            const fetchStatusDiv = document.getElementById('fetchStatus');
+            const fetchButton = document.getElementById('fetchGardensBtn');
+            const buttonText = document.getElementById('buttonText');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            // Clear previous results and set loading state
+            outputDiv.innerHTML = '<p class="text-gray-600">Initializing...</p>';
+            totalOverlapsDiv.innerHTML = '';
+            performanceMetricsDiv.innerHTML = '';
+            fetchStatusDiv.className = 'mt-3 text-sm text-center text-green-600';
+            fetchStatusDiv.textContent = 'Ready to fetch.';
+            fetchButton.disabled = true;
+            buttonText.textContent = 'Fetching...';
+            loadingIndicator.classList.remove('hidden');
+
+            if (!apiKey || !baseId || !tableName || !geojsonFieldName || !fieldsToFetchRaw) {
+                fetchStatusDiv.className = 'mt-3 text-sm text-center text-red-600';
+                fetchStatusDiv.textContent = 'Please enter all required Airtable API details.';
+                outputDiv.innerHTML = '<p class="text-gray-600">Enter Airtable details and click "Fetch Gardens" to begin.</p>';
+                fetchButton.disabled = false;
+                buttonText.textContent = 'Fetch Gardens & Detect Overlaps';
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+
+            // Prepare fields to fetch for API request
+            const fieldsArray = fieldsToFetchRaw.split(',').map(field => field.trim()).filter(field => field !== '');
+            // Ensure GeoJSON field is always fetched, even if not explicitly listed
+            if (!fieldsArray.includes(geojsonFieldName)) {
+                fieldsArray.push(geojsonFieldName);
+            }
+
+            let allRecords = [];
+            let offset = null;
+            let page = 1;
+
+            try {
+                // Loop to fetch all pages
+                do {
+                    fetchStatusDiv.textContent = `Fetching page ${page}... (records fetched: ${allRecords.length})`;
+                    let url = `https://api.airtable.com/v0/${baseId}/${tableName}`;
+                    const params = new URLSearchParams();
+                    if (offset) {
+                        params.append('offset', offset);
+                    }
+                    if (viewName) {
+                        params.append('view', viewName);
+                    }
+                    // Add fields[] parameters
+                    fieldsArray.forEach(field => {
+                        params.append('fields[]', field);
+                    });
+
+                    if (params.toString()) {
+                        url += `?${params.toString()}`;
+                    }
+
+                    console.log(`[Airtable Fetch] Requesting URL: ${url}`);
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`
+                        }
+                    });
+
+                    console.log(`[Airtable Fetch] Response status: ${response.status}, OK: ${response.ok}`);
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error("[Airtable Fetch] Error response data:", errorData);
+                        throw new Error(`Airtable API Error: ${response.status} - ${errorData.error.message || response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log(`[Airtable Fetch] Received data for page ${page}:`, data);
+                    allRecords = allRecords.concat(data.records);
+                    offset = data.offset;
+                    page++;
+                } while (offset);
+
+                if (allRecords.length === 0) {
+                    fetchStatusDiv.className = 'mt-3 text-sm text-center text-orange-600';
+                    fetchStatusDiv.textContent = 'No garden records found in Airtable.';
+                    outputDiv.innerHTML = '<p class="text-gray-600">No gardens to process.</p>';
+                    fetchButton.disabled = false;
+                    buttonText.textContent = 'Fetch Gardens & Detect Overlaps';
+                    loadingIndicator.classList.add('hidden');
+                    return;
+                }
+
+                // Process fetched records into GeoJSON polygons
+                const gardenPolygons = allRecords.map(record => {
+                    console.log(`[Airtable Parse] Processing record ID: ${record.id}, Fields:`, record.fields);
+                    try {
+                        // Determine the name for the garden (prefer Farmer Name, then ID, then generic)
+                        const nameFieldCandidates = ['Farmer Name', 'Name']; // Prioritize 'Farmer Name' as per your data
+                        let recordName = `Unnamed Garden ${record.id}`;
+                        for (const candidate of nameFieldCandidates) {
+                            if (record.fields[candidate]) {
+                                recordName = record.fields[candidate];
+                                break;
+                            }
+                        }
+                        // Add ID to name if available
+                        const recordId = record.fields.ID || record.id;
+                        recordName = recordName + (record.fields.ID ? ` (ID: ${recordId})` : '');
+
+
+                        let coordinatesData = record.fields[geojsonFieldName];
+                        console.log(`[Airtable Parse] Record '${recordName}', GeoJSON Field ('${geojsonFieldName}') raw content:`, coordinatesData);
+
+                        // FIX: Check if coordinatesData is an array and take the first element (if it's an array of strings)
+                        if (Array.isArray(coordinatesData) && coordinatesData.length > 0 && typeof coordinatesData[0] === 'string') {
+                            coordinatesData = coordinatesData[0];
+                        }
+
+                        if (!coordinatesData) {
+                            console.warn(`Record ${recordName} (ID: ${record.id}) is missing or has an empty '${geojsonFieldName}' field. Skipping.`);
+                            return null;
+                        }
+
+                        // Ensure it's a string before parsing
+                        const coordinatesString = typeof coordinatesData === 'string' ? coordinatesData : JSON.stringify(coordinatesData);
+
+                        let parsedGeoJSON;
+                        try {
+                            parsedGeoJSON = JSON.parse(coordinatesString);
+                        } catch (jsonParseError) {
+                            console.error(`Record ${recordName} (ID: ${record.id}) - JSON parse error for GeoJSON field:`, jsonParseError);
+                            return null;
+                        }
+                        console.log(`[Airtable Parse] Record '${recordName}', Parsed GeoJSON object:`, parsedGeoJSON);
+
+                        // Validate GeoJSON type and basic structure
+                        if (parsedGeoJSON.type !== "Polygon" || !Array.isArray(parsedGeoJSON.coordinates) || parsedGeoJSON.coordinates.length === 0) {
+                            console.warn(`Record ${recordName} (ID: ${record.id}) has invalid GeoJSON 'Polygon' type or structure. Skipping.`);
+                            return null;
+                        }
+
+                        // Ensure the first element of coordinates is an array (the outer ring)
+                        if (!Array.isArray(parsedGeoJSON.coordinates[0])) {
+                             console.warn(`Record ${recordName} (ID: ${record.id}) GeoJSON coordinates are not an array of rings. Skipping.`);
+                             return null;
+                        }
+
+                        // FIX: Trim coordinates to [lon, lat] for Turf.js compatibility
+                        const cleanedCoordinates = parsedGeoJSON.coordinates.map(ring =>
+                            ring.map(point => point.slice(0, 2)) // Take only the first two elements (lon, lat)
+                        );
+
+                        // Ensure outer ring exists and has at least 4 points (for a closed polygon)
+                        const outerRing = cleanedCoordinates[0];
+                        if (!outerRing || outerRing.length < 4) {
+                            console.warn(`Record ${recordName} (ID: ${record.id}) outer ring has too few points (${outerRing ? outerRing.length : 'undefined'}) for a valid polygon. Skipping.`);
+                            return null;
+                        }
+
+                        // Ensure outer ring is closed (first and last coordinate are the same)
+                        const firstPoint = outerRing[0];
+                        const lastPoint = outerRing[outerRing.length - 1];
+
+                        // Check if the first and last points are NOT identical (using stringify for deep comparison)
+                        if (JSON.stringify(firstPoint) !== JSON.stringify(lastPoint)) {
+                             console.warn(`Record ${recordName} (ID: ${record.id}) outer ring is not closed. Closing it.`);
+                             outerRing.push(firstPoint); // Close the polygon by adding the first point again
+                        }
+
+                        // Create a Turf.js Feature
+                        let feature = turf.polygon(cleanedCoordinates, {
+                            name: recordName,
+                            id: recordId,
+                            ...record.fields // Include all fetched fields in properties
+                        });
+
+                        // Step 1: Apply turf.rewind for correct winding order
+                        try {
+                            feature = turf.rewind(feature, { reverse: false }); // Ensure standard winding order
+                            console.log(`[Airtable Parse] Record '${recordName}' after rewind:`, feature);
+                        } catch (rewindError) {
+                            console.warn(`Record ${recordName} (ID: ${record.id}) - Error rewinding polygon, skipping.`, rewindError);
+                            return null;
+                        }
+
+                        // Step 2: Apply turf.buffer(0) to attempt to fix self-intersections and other minor issues
+                        try {
+                            const bufferedFeature = turf.buffer(feature, 0, { units: 'meters' });
+                            if (bufferedFeature && bufferedFeature.geometry && bufferedFeature.geometry.type === 'Polygon') {
+                                feature = bufferedFeature;
+                                console.log(`[Airtable Parse] Record '${recordName}' after zero-buffer (healing):`, feature);
+                            } else {
+                                console.warn(`Record ${recordName} (ID: ${record.id}) - Zero-buffer resulted in non-polygon or null. Skipping.`, bufferedFeature);
+                                return null;
+                            }
+                        } catch (bufferError) {
+                            console.warn(`Record ${recordName} (ID: ${record.id}) - Error buffering polygon, skipping.`, bufferError);
+                            return null;
+                        }
+
+                        return feature; // Return the cleaned Turf.js feature
+                    } catch (parseError) {
+                        console.error(`Error parsing or processing GeoJSON for record ID ${record.id} from field '${geojsonFieldName}':`, parseError);
+                        return null;
+                    }
+                }).filter(Boolean); // Filter out any nulls from parsing errors
+
+                console.log(`[Airtable Parse] Final number of valid garden polygons: ${gardenPolygons.length}`, gardenPolygons);
+
+                fetchStatusDiv.className = 'mt-3 text-sm text-center text-green-600';
+                fetchStatusDiv.textContent = `Successfully fetched ${gardenPolygons.length} gardens. Now detecting overlaps...`;
+                outputDiv.innerHTML = '<p class="text-gray-600">Detecting overlaps...</p>';
+
+                // --- Start Overlap Detection Logic ---
+                let overlapsFound = false;
+                let totalOverlapsCount = 0;
+                let bboxCheckCount = 0;
+                let booleanOverlapCallCount = 0;
+                const gardensWithOverlaps = new Set();
+
+                const startTime = performance.now();
+                const NUM_GARDENS = gardenPolygons.length;
+
+                if (NUM_GARDENS < 2) {
+                    outputDiv.innerHTML = '<p class="text-gray-600">Not enough gardens to detect overlaps (need at least 2).</p>';
+                    totalOverlapsDiv.textContent = `Total overlap pairs detected: 0`;
+                    performanceMetricsDiv.innerHTML = `
+                        <p>Total time taken: <strong>0 ms</strong></p>
+                        <p>Total bounding box comparisons: <strong>0</strong></p>
+                        <p>Full <code class="font-mono bg-yellow-100 px-1 rounded">turf.booleanOverlap</code> calls: <strong>0</strong></p>
+                        <p>Number of polygons processed: <strong>${NUM_GARDENS}</strong></p>
+                        <p>Number of individual gardens with overlaps: <strong>0</strong></p>
+                    `;
+                    fetchButton.disabled = false;
+                    buttonText.textContent = 'Fetch Gardens & Detect Overlaps';
+                    loadingIndicator.classList.add('hidden');
+                    return;
+                }
+
+                for (let i = 0; i < NUM_GARDENS; i++) {
+                    const poly1 = gardenPolygons[i];
+                    const poly1Name = poly1.properties.name;
+                    const bbox1 = turf.bbox(poly1);
+
+                    for (let j = i + 1; j < NUM_GARDENS; j++) {
+                        const poly2 = gardenPolygons[j];
+                        const poly2Name = poly2.properties.name;
+                        const bbox2 = turf.bbox(poly2);
+
+                        bboxCheckCount++;
+
+                        const areBboxesOverlapping = bboxesOverlap(bbox1, bbox2);
+
+                        if (areBboxesOverlapping) {
+                            booleanOverlapCallCount++;
+                            // Use turf.booleanOverlap for the primary check
+                            const hasOverlap = turf.booleanOverlap(poly1, poly2);
+
+                            if (hasOverlap) {
+                                if (!overlapsFound) {
+                                    // First overlap found, clear the "Detecting overlaps..." message
+                                    outputDiv.innerHTML = '';
+                                }
+                                overlapsFound = true;
+                                totalOverlapsCount++;
+                                gardensWithOverlaps.add(poly1Name);
+                                gardensWithOverlaps.add(poly2Name);
+                                console.log(`Overlap found between ${poly1Name} and ${poly2Name}.`);
+
+                                try {
+                                    // Calculate the intersection area for display
+                                    const intersectionGeometry = turf.intersect(poly1, poly2);
+                                    if (intersectionGeometry) {
+                                        const overlapArea = turf.area(intersectionGeometry);
+                                        const overlapItem = document.createElement('div');
+                                        overlapItem.className = 'bg-green-50 p-4 rounded-lg border border-green-200';
+                                        overlapItem.innerHTML = `
+                                            <h3 class="text-lg font-medium text-green-800">Overlap between ${poly1Name} and ${poly2Name}:</h3>
+                                            <p class="text-green-700">
+                                                Intersection Area: <strong class="font-semibold">${overlapArea.toFixed(2)} square meters</strong>
+                                            </p>
+                                        `;
+                                        outputDiv.appendChild(overlapItem);
+                                    } else {
+                                        // This can happen if polygons touch at a line or point
+                                        console.log(`Overlap detected between ${poly1Name} and ${poly2Name}, but intersection resulted in null (likely a line or point).`);
+                                        const overlapItem = document.createElement('div');
+                                        overlapItem.className = 'bg-yellow-50 p-4 rounded-lg border border-yellow-200';
+                                        overlapItem.innerHTML = `
+                                            <h3 class="text-lg font-medium text-yellow-800">Overlap detected between ${poly1Name} and ${poly2Name}:</h3>
+                                            <p class="text-yellow-700">
+                                                The polygons touch but do not have a measurable overlapping area (e.g., they share a border).
+                                            </p>
+                                        `;
+                                        outputDiv.appendChild(overlapItem);
+                                    }
+                                } catch (intersectError) {
+                                    console.error(`Turf.js Error: Could not calculate intersection between ${poly1Name} and ${poly2Name}.`, intersectError);
+                                    const errorItem = document.createElement('div');
+                                    errorItem.className = 'bg-red-50 p-4 rounded-lg border border-red-200';
+                                    errorItem.innerHTML = `
+                                        <h3 class="text-lg font-medium text-red-800">Overlap between ${poly1Name} and ${poly2Name}:</h3>
+                                        <p class="text-red-700">
+                                            An overlap was detected, but the exact area could not be calculated due to a geometry processing error. Check the console for details.
+                                        </p>
+                                    `;
+                                    outputDiv.appendChild(errorItem);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                const endTime = performance.now();
+
+                if (!overlapsFound) {
+                    outputDiv.innerHTML = '<p class="text-gray-600">No overlaps found between any of the fetched garden polygons.</p>';
+                }
+
+                totalOverlapsDiv.textContent = `Total overlap pairs detected: ${totalOverlapsCount}`;
+                performanceMetricsDiv.innerHTML = `
+                    <p>Total time taken: <strong>${(endTime - startTime).toFixed(2)} ms</strong></p>
+                    <p>Total bounding box comparisons: <strong>${bboxCheckCount}</strong></p>
+                    <p>Full <code class="font-mono bg-yellow-100 px-1 rounded">turf.booleanOverlap</code> calls: <strong>${booleanOverlapCallCount}</strong></p>
+                    <p>Number of polygons processed: <strong>${NUM_GARDENS}</strong></p>
+                    <p>Number of individual gardens with overlaps: <strong>${gardensWithOverlaps.size}</strong></p>
+                `;
+
+                console.log("Overlap detection complete.");
+                console.log(`Total overlap pairs detected: ${totalOverlapsCount}`);
+                console.log(`Total bounding box comparisons: ${bboxCheckCount}`);
+                console.log(`Full turf.booleanOverlap calls: ${booleanOverlapCallCount}`);
+                console.log(`Number of individual gardens with overlaps: ${gardensWithOverlaps.size}`);
+                console.log(`Time taken: ${(endTime - startTime).toFixed(2)} ms`);
+
+            } catch (error) {
+                console.error("Error during fetch or overlap detection:", error);
+                fetchStatusDiv.className = 'mt-3 text-sm text-center text-red-600';
+                fetchStatusDiv.textContent = `Error: ${error.message}`;
+                outputDiv.innerHTML = '<p class="text-red-600">An error occurred. Please check your Airtable details and console for more info.</p>';
+            } finally {
+                fetchButton.disabled = false;
+                buttonText.textContent = 'Fetch Gardens & Detect Overlaps';
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('fetchGardensBtn').addEventListener('click', fetchAndDetectOverlaps);
+        });
+    </script>
+</body>
+</html>
