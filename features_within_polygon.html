@@ -78,6 +78,7 @@
         // Results
         withinFeatures: [],
         outsideFeatures: [],
+        unprocessedFeatures: [],
         
         /**
          * Set polygon boundary GeoJSON and update UI
@@ -235,10 +236,11 @@
          * Display comparison results in the UI
          * @param {Array} withinFeatures - Features found within the boundary
          * @param {Array} outsideFeatures - Features found outside the boundary
+         * @param {Array} unprocessedFeatures - Features that could not be processed
          */
-        displayComparisonResults: function(withinFeatures, outsideFeatures) {
+        displayComparisonResults: function(withinFeatures, outsideFeatures, unprocessedFeatures) {
             const resultsDiv = document.getElementById('compareResults');
-            const totalFeatures = withinFeatures.length + outsideFeatures.length;
+            const totalFeatures = withinFeatures.length + outsideFeatures.length + unprocessedFeatures.length;
             
             resultsDiv.style.color = '#333';
             resultsDiv.innerHTML = `<b>Comparison Results:</b><br>
@@ -264,6 +266,9 @@
                     <button class="export-btn" id="export-outside-geojson">Export Outside (GeoJSON)</button>
                     <button class="export-btn" id="export-outside-csv">Export Outside (CSV)</button>
                 </div>`;
+            }
+             if (unprocessedFeatures.length) {
+                console.log("Unprocessed Features:", unprocessedFeatures);
             }
             
             // Add event listeners for export buttons
@@ -436,7 +441,9 @@
          * @returns {Object} GeoJSON FeatureCollection
          */
         convertCSVtoGeoJSON: function(rows, geometryColumn) {
-            const features = rows.map(row => {
+            const features = [];
+            const unprocessed = [];
+            rows.forEach(row => {
                 let geometry = null;
                 try {
                     geometry = JSON.parse(row[geometryColumn]);
@@ -447,12 +454,23 @@
                 const properties = { ...row };
                 delete properties[geometryColumn];
                 
-                return {
+                const feature = {
                     type: 'Feature',
                     geometry,
                     properties
                 };
-            }).filter(f => f.geometry && f.geometry.type);
+
+                if (feature.geometry && feature.geometry.type) {
+                    features.push(feature);
+                } else {
+                    unprocessed.push(row);
+                }
+            });
+
+            AppState.unprocessedFeatures = unprocessed.map((row, idx) => ({
+                idx: `csv-row-${idx}`,
+                feat: row
+            }));
             
             return {
                 type: 'FeatureCollection',
@@ -551,6 +569,7 @@
             // Compare each feature in file 2
             AppState.withinFeatures = [];
             AppState.outsideFeatures = [];
+            AppState.unprocessedFeatures = AppState.unprocessedFeatures || [];
             
             AppState.featuresGeoJSON.features.forEach((feat, idx) => {
                 try {
@@ -567,15 +586,15 @@
                             AppState.outsideFeatures.push({ idx, feat });
                         }
                     } else {
-                        AppState.outsideFeatures.push({ idx, feat });
+                        AppState.unprocessedFeatures.push({ idx, feat, reason: 'Invalid or missing geometry' });
                     }
                 } catch (e) {
-                    AppState.outsideFeatures.push({ idx, feat });
+                    AppState.unprocessedFeatures.push({ idx, feat, reason: `Processing error: ${e.message}` });
                 }
             });
             
             // Display results
-            UIController.displayComparisonResults(AppState.withinFeatures, AppState.outsideFeatures);
+            UIController.displayComparisonResults(AppState.withinFeatures, AppState.outsideFeatures, AppState.unprocessedFeatures);
         }
     };
 
