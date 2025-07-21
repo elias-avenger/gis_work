@@ -15,8 +15,45 @@ body {
     padding: 32px 0 0 0;
     position: fixed;
     top: 0; left: 0; bottom: 0;
-    z-index: 100;
+    z-index: 200;
     transition: transform 0.3s ease;
+    transform: translateX(-100%);
+}
+.sidebar.open {
+    transform: translateX(0);
+}
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%; /* Take full width on mobile */
+}
+.sidebar-toggle {
+    display: block;
+    position: fixed;
+    top: 18px;
+    left: 18px;
+    z-index: 300;
+    background: #43a047;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 1.5em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(46,125,50,0.10);
+}
+@media (min-width: 901px) {
+    .sidebar {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 240px;
+    }
+    .sidebar-toggle {
+        display: none;
+    }
 }
 .sidebar .logo-img {
     width: 64px;
@@ -62,13 +99,6 @@ body {
     color: #c8e6c9;
     width: 100%;
     text-align: center;
-}
-.main-content {
-    margin-left: 240px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
 }
 header {
     text-align: center;
@@ -150,15 +180,14 @@ main {
     border: 2px solid #c8e6c9;
     border-radius: 16px;
     box-shadow: 0 4px 18px rgba(46,125,50,0.10);
-    padding: 20px 20px 18px 20px; /* reduced vertical padding */
+    padding: 20px 20px 18px 20px;
     max-width: 600px;
-    margin: 24px auto 0 auto; /* reduced top margin */
+    margin: 24px auto 0 auto;
 }
 .light-green-card {
     background: #f8fff8 !important;
     border: 2px solid #c8e6c9;
 }
-/* Reduce gap between stacked tool-cards inside a parent card */
 .light-green-card > .tool-card {
     margin-bottom: 10px !important;
     margin-top: 0 !important;
@@ -167,15 +196,15 @@ main {
 }
 .tool-title {
     color: #2e7d32;
-    font-size: 1.6em; /* slightly smaller */
+    font-size: 1.6em;
     font-weight: 600;
-    margin-bottom: 10px; /* reduced */
+    margin-bottom: 10px;
     text-align: center;
 }
 .tool-desc {
     color: #388e3c;
     font-size: 1em;
-    margin-bottom: 14px; /* reduced */
+    margin-bottom: 14px;
     text-align: center;
 }
 label {
@@ -246,24 +275,43 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     font-size: 1.08em;
 }
 .export-buttons {
-    margin-top: 12px;
-    margin-bottom: 16px;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
 }
-.export-btn {
+.btn-primary {
     background: #43a047;
     color: #fff;
     border: none;
     border-radius: 4px;
-    padding: 6px 12px;
+    padding: 8px 14px;
     font-size: 0.9em;
     cursor: pointer;
     transition: background 0.2s;
+    text-decoration: none;
+    display: inline-block;
 }
-.export-btn:hover {
+.btn-primary:hover {
     background: #388e3c;
+}
+.progress-bar-container {
+    width: 100%;
+    background-color: #f3f3f3;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+.progress-bar {
+    width: 0%;
+    height: 20px;
+    background-color: #4CAF50;
+    text-align: center;
+    line-height: 20px;
+    color: white;
+    border-radius: 5px;
+    transition: width 0.2s ease-in-out;
 }
 #preview {
     width: 100%;
@@ -286,9 +334,7 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     font-weight: 500;
     cursor: pointer;
 }
-/* Main section content card for forms, previews, and results */
 .main-card {
-    /* background: #fff; */
     border: 2px solid #e0e0e0;
     border-radius: 16px;
     box-shadow: 0 4px 18px rgba(46,125,50,0.10);
@@ -298,8 +344,6 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     width: 100%;
     text-align: center;
 }
-
-/* Center and size input fields and controls inside .main-card */
 .main-card form, .main-card .form-section {
     display: flex;
     flex-direction: column;
@@ -312,8 +356,6 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     margin-left: auto;
     margin-right: auto;
 }
-
-/* Main section sub-sections (input fields, preview/results) */
 .main-card .main-section {
     background: #fff;
     border-radius: 12px;
@@ -327,39 +369,10 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     flex-direction: column;
     gap: 12px;
 }
-
 @media (max-width: 900px) {
     .features {
         flex-direction: column;
         align-items: center;
-    }
-    .sidebar {
-        transform: translateX(-100%);
-        position: fixed;
-        left: 0; top: 0; bottom: 0;
-        z-index: 200;
-        box-shadow: 2px 0 12px rgba(46,125,50,0.10);
-    }
-    .sidebar.open {
-        transform: translateX(0);
-    }
-    .main-content {
-        margin-left: 0;
-    }
-    .sidebar-toggle {
-        display: block;
-        position: fixed;
-        top: 18px;
-        left: 18px;
-        z-index: 300;
-        background: #43a047;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        padding: 10px 14px;
-        font-size: 1.5em;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(46,125,50,0.10);
     }
     .tool-card { margin: 32px 8px 0 8px; }
     .main-card {
@@ -374,10 +387,5 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     .main-card .main-section {
         max-width: 100%;
         padding: 14px 4px;
-    }
-}
-@media (min-width: 901px) {
-    .sidebar-toggle {
-        display: none;
     }
 }

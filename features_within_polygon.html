@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
-    <nav class="sidebar open">
+    <button class="sidebar-toggle">☰</button>
+    <nav class="sidebar">
         <img src="images/kijnai_logo.png" alt="GIS Workbench Logo" class="logo-img" />
         <h1>GIS Workbench</h1>
         <div class="nav-links">
@@ -16,6 +16,7 @@
             <a href="features_within_polygon.html" class="nav-link" id="nav-features">Check Features Within Polygon</a>
             <a href="polygons_csv_geojson.html" class="nav-link" id="nav-csv">Convert Polygons CSV to GeoJSON</a>
             <a href="gps_points_csv_geojson.html" class="nav-link" id="nav-gps">CSV GPS Points to GeoJSON</a>
+            <a href="detect_overlaps.html" class="nav-link" id="nav-overlaps">Detect Overlaps</a>
         </div>
         <div class="sidebar-footer">&copy; 2025 GIS Workbench</div>
     </nav>
@@ -78,6 +79,7 @@
         // Results
         withinFeatures: [],
         outsideFeatures: [],
+        unprocessedFeatures: [],
         
         /**
          * Set polygon boundary GeoJSON and update UI
@@ -235,10 +237,11 @@
          * Display comparison results in the UI
          * @param {Array} withinFeatures - Features found within the boundary
          * @param {Array} outsideFeatures - Features found outside the boundary
+         * @param {Array} unprocessedFeatures - Features that could not be processed
          */
-        displayComparisonResults: function(withinFeatures, outsideFeatures) {
+        displayComparisonResults: function(withinFeatures, outsideFeatures, unprocessedFeatures) {
             const resultsDiv = document.getElementById('compareResults');
-            const totalFeatures = withinFeatures.length + outsideFeatures.length;
+            const totalFeatures = withinFeatures.length + outsideFeatures.length + unprocessedFeatures.length;
             
             resultsDiv.style.color = '#333';
             resultsDiv.innerHTML = `<b>Comparison Results:</b><br>
@@ -250,8 +253,8 @@
                     withinFeatures.map(f => `<li>Feature #${f.idx+1} (${f.feat.geometry.type})</li>`).join('')
                 }</ol></details>`;
                 resultsDiv.innerHTML += `<div class="export-buttons">
-                    <button class="export-btn" id="export-within-geojson">Export Within (GeoJSON)</button>
-                    <button class="export-btn" id="export-within-csv">Export Within (CSV)</button>
+                    <button class="btn-primary" id="export-within-geojson">Export Within (GeoJSON)</button>
+                    <button class="btn-primary" id="export-within-csv">Export Within (CSV)</button>
                 </div>`;
             }
             
@@ -261,9 +264,12 @@
                     outsideFeatures.map(f => `<li>Feature #${f.idx+1} (${f.feat.geometry ? f.feat.geometry.type : 'No geometry'})</li>`).join('')
                 }</ol></details>`;
                 resultsDiv.innerHTML += `<div class="export-buttons">
-                    <button class="export-btn" id="export-outside-geojson">Export Outside (GeoJSON)</button>
-                    <button class="export-btn" id="export-outside-csv">Export Outside (CSV)</button>
+                    <button class="btn-primary" id="export-outside-geojson">Export Outside (GeoJSON)</button>
+                    <button class="btn-primary" id="export-outside-csv">Export Outside (CSV)</button>
                 </div>`;
+            }
+             if (unprocessedFeatures.length) {
+                console.log("Unprocessed Features:", unprocessedFeatures);
             }
             
             // Add event listeners for export buttons
@@ -436,7 +442,9 @@
          * @returns {Object} GeoJSON FeatureCollection
          */
         convertCSVtoGeoJSON: function(rows, geometryColumn) {
-            const features = rows.map(row => {
+            const features = [];
+            const unprocessed = [];
+            rows.forEach(row => {
                 let geometry = null;
                 try {
                     geometry = JSON.parse(row[geometryColumn]);
@@ -447,12 +455,23 @@
                 const properties = { ...row };
                 delete properties[geometryColumn];
                 
-                return {
+                const feature = {
                     type: 'Feature',
                     geometry,
                     properties
                 };
-            }).filter(f => f.geometry && f.geometry.type);
+
+                if (feature.geometry && feature.geometry.type) {
+                    features.push(feature);
+                } else {
+                    unprocessed.push(row);
+                }
+            });
+
+            AppState.unprocessedFeatures = unprocessed.map((row, idx) => ({
+                idx: `csv-row-${idx}`,
+                feat: row
+            }));
             
             return {
                 type: 'FeatureCollection',
@@ -551,6 +570,7 @@
             // Compare each feature in file 2
             AppState.withinFeatures = [];
             AppState.outsideFeatures = [];
+            AppState.unprocessedFeatures = AppState.unprocessedFeatures || [];
             
             AppState.featuresGeoJSON.features.forEach((feat, idx) => {
                 try {
@@ -567,15 +587,15 @@
                             AppState.outsideFeatures.push({ idx, feat });
                         }
                     } else {
-                        AppState.outsideFeatures.push({ idx, feat });
+                        AppState.unprocessedFeatures.push({ idx, feat, reason: 'Invalid or missing geometry' });
                     }
                 } catch (e) {
-                    AppState.outsideFeatures.push({ idx, feat });
+                    AppState.unprocessedFeatures.push({ idx, feat, reason: `Processing error: ${e.message}` });
                 }
             });
             
             // Display results
-            UIController.displayComparisonResults(AppState.withinFeatures, AppState.outsideFeatures);
+            UIController.displayComparisonResults(AppState.withinFeatures, AppState.outsideFeatures, AppState.unprocessedFeatures);
         }
     };
 

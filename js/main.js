@@ -16,11 +16,17 @@ document.addEventListener('DOMContentLoaded', function() {
         'index.html': 'nav-home',
         'features_within_polygon.html': 'nav-features',
         'polygons_csv_geojson.html': 'nav-csv',
-        'gps_points_csv_geojson.html': 'nav-gps'
+        'gps_points_csv_geojson.html': 'nav-gps',
+        'detect_overlaps.html': 'nav-overlaps'
     };
     if (path === '' || path === 'index.html') {
-        document.getElementById('nav-home')?.classList.add('active');
-    } else if (navMap[path]) {
-        document.getElementById(navMap[path])?.classList.add('active');
+        const homeLink = document.getElementById('nav-home');
+        if (homeLink) homeLink.classList.add('active');
+    } else {
+        const navId = navMap[path];
+        if (navId) {
+            const navLink = document.getElementById(navId);
+            if (navLink) navLink.classList.add('active');
+        }
     }
 });
