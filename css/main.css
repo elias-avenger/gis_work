@@ -5,6 +5,10 @@ body {
     min-height: 100vh;
     display: flex;
 }
+/* Ensure padding and borders don't cause overflow on small screens */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
 .sidebar {
     width: 240px;
     background: #388e3c;
@@ -187,10 +191,12 @@ main {
 .light-green-card {
     background: #f8fff8 !important;
     border: 2px solid #c8e6c9;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(46,125,50,0.10);
 }
-.light-green-card > .tool-card {
-    margin-bottom: 10px !important;
-    margin-top: 0 !important;
+/* Apply light green adjustments directly when the card has the modifier */
+.tool-card.light-green-card,
+.main-card.light-green-card {
     padding-top: 16px;
     padding-bottom: 12px;
 }
@@ -335,7 +341,8 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     cursor: pointer;
 }
 .main-card {
-    border: 2px solid #e0e0e0;
+    background: #f8fff8;
+    border: 2px solid #c8e6c9;
     border-radius: 16px;
     box-shadow: 0 4px 18px rgba(46,125,50,0.10);
     padding: 22px 28px;
@@ -343,6 +350,10 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     max-width: 600px;
     width: 100%;
     text-align: center;
+    /* Prevent child content from causing horizontal overflow */
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 .main-card form, .main-card .form-section {
     display: flex;
@@ -374,11 +385,16 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
         flex-direction: column;
         align-items: center;
     }
-    .tool-card { margin: 32px 8px 0 8px; }
+    .tool-card { 
+        margin: 32px 8px 0 8px; 
+        padding: 18px 8px; /* match main-card for visual balance */
+    }
     .main-card {
         margin: 32px 8px 0 8px;
         padding: 18px 8px;
     }
+    /* Center cards within main-content on narrow screens */
+    .main-content { align-items: center; }
     .main-card label, .main-card input, .main-card select, .main-card button, .main-card .export-buttons {
         max-width: 100%;
     }
