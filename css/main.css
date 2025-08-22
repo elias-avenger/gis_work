@@ -380,6 +380,32 @@ button:not(:disabled):hover, .export-btn:not(:disabled):hover {
     flex-direction: column;
     gap: 12px;
 }
+.map-card{
+    background:none; 
+    box-shadow:none;
+}
+/* Make the card look like your other cards (optional, but recommended) */
+.map-card {
+    background: #f8fff8;
+    border: 2px solid #c8e6c9;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(46,125,50,0.10);
+    padding: 5px 5px;
+    margin: 24px auto 0 auto;
+    max-width: 800px;
+    width: 100%;
+}
+
+/* Make the map a responsive square that follows width */
+#map {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 12px;
+    overflow: hidden;
+}
 @media (max-width: 900px) {
     .features {
         flex-direction: column;
