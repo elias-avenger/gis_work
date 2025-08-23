@@ -755,7 +755,7 @@
                             id: lineLayerId,
                             type: 'line',
                             source: sourceId,
-                            paint: { 'line-color': '#1b5e20', 'line-width': 2 }
+                            paint: { 'line-color': '#7af0a3', 'line-width': 2 }
                         })
                     }
                     this.applyGroupVisibility('polygon')
@@ -869,7 +869,7 @@
             popup.style.position = 'absolute'
             popup.style.top = '38px'
             popup.style.right = '0'
-            popup.style.background = '#fff'
+            popup.style.background = 'rgba(255,255,255,0.25)'
             popup.style.border = '1px solid #ccc'
             popup.style.borderRadius = '6px'
             popup.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'
@@ -919,6 +919,121 @@
         }
 
         // ==========================================
+        // STYLE TOGGLE CONTROL (bottom-left)
+        // ==========================================
+        function StyleToggleControl() {}
+        StyleToggleControl.prototype.onAdd = function(map) {
+            this._map = map;
+            const container = document.createElement('div');
+            container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+
+            const styles = [
+                { id: 'satellite-v9', url: 'mapbox://styles/mapbox/satellite-v9', label: 'Satellite' },
+                { id: 'satellite-streets-v12', url: 'mapbox://styles/mapbox/satellite-streets-v12', label: 'Satellite Streets' },
+                { id: 'streets-v12', url: 'mapbox://styles/mapbox/streets-v12', label: 'Streets' },
+                { id: 'light-v11', url: 'mapbox://styles/mapbox/light-v11', label: 'Light' },
+                { id: 'dark-v11', url: 'mapbox://styles/mapbox/dark-v11', label: 'Dark' },
+                { id: 'outdoors-v12', url: 'mapbox://styles/mapbox/outdoors-v12', label: 'Outdoors' }
+            ];
+
+            const detectInitialIndex = () => {
+                try {
+                    const styleObj = this._map.getStyle && this._map.getStyle();
+                    const sprite = (styleObj && styleObj.sprite) || '';
+                    for (let i = 0; i < styles.length; i++) {
+                        if (sprite.includes(styles[i].id)) return i;
+                    }
+                } catch (e) {}
+                return 0;
+            };
+
+            this._styleIndex = detectInitialIndex();
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.title = `Map style (current: ${styles[this._styleIndex].label} - ${styles[this._styleIndex].id})`;
+            btn.textContent = '🗺️';
+            btn.style.fontSize = '14px';
+            btn.style.lineHeight = '1';
+            btn.style.padding = '4px 6px';
+
+            // Popup menu for explicit style selection
+            const popup = document.createElement('div');
+            popup.style.position = 'absolute';
+            popup.style.bottom = '38px';
+            popup.style.left = '0';
+            popup.style.background = 'rgba(255,255,255,0.2)';
+            popup.style.border = '1px solid rgba(0,0,0,0.2)';
+            try { popup.style.backdropFilter = 'blur(2px) saturate(120%)'; } catch (e) {}
+            try { popup.style.webkitBackdropFilter = 'blur(2px) saturate(120%)'; } catch (e) {}
+            popup.style.borderRadius = '6px';
+            popup.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+            popup.style.padding = '6px 8px';
+            popup.style.fontSize = '13px';
+            popup.style.display = 'none';
+            popup.style.zIndex = '2';
+
+            const list = document.createElement('div');
+            list.style.display = 'flex';
+            list.style.flexWrap = 'wrap';
+            list.style.gap = '8px';
+
+            const applyStyleIndex = (idx) => {
+                const currentProjection = (this._map.getProjection && this._map.getProjection().name) || 'mercator';
+                this._styleIndex = idx;
+                const next = styles[idx];
+                btn.title = `Map style (current: ${next.label} - ${next.id})`;
+                this._map.setStyle(next.url);
+                this._map.once('style.load', () => {
+                    try { this._map.setProjection(currentProjection); } catch (e) {}
+                });
+                Array.from(list.children).forEach((child, i) => {
+                    child.style.background = i === idx ? '#c5d7f2' : '#d9d9d9';
+                    child.style.borderColor = i === idx ? '#5b8bd4' : '#999';
+                    child.style.color = '#111';
+                });
+            };
+
+            styles.forEach((s, i) => {
+                const opt = document.createElement('button');
+                opt.type = 'button';
+                opt.innerHTML = `${s.label} <span style="color:#222;font-family:monospace;font-size:12px;">${s.id}</span>`;
+                opt.title = `${s.label} - ${s.id}`;
+                opt.style.padding = '8px 14px';
+                opt.style.minWidth = '240px';
+                opt.style.textAlign = 'left';
+                opt.style.border = i === this._styleIndex ? '1px solid #5b8bd4' : '1px solid #999';
+                opt.style.borderRadius = '6px';
+                opt.style.background = i === this._styleIndex ? '#c5d7f2' : '#d9d9d9';
+                opt.style.color = '#111';
+                opt.style.cursor = 'pointer';
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    applyStyleIndex(i);
+                    popup.style.display = 'none';
+                });
+                list.appendChild(opt);
+            });
+
+            popup.appendChild(list);
+
+            container.style.position = 'relative';
+            container.appendChild(btn);
+            container.appendChild(popup);
+
+            const toggle = () => { popup.style.display = popup.style.display === 'none' ? 'block' : 'none' };
+            btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+            document.addEventListener('click', (e) => { if (!container.contains(e.target)) popup.style.display = 'none' });
+
+            this._container = container;
+            return container;
+        };
+        StyleToggleControl.prototype.onRemove = function() {
+            this._container.parentNode.removeChild(this._container);
+            this._map = undefined;
+        };
+
+        // ==========================================
         // PROJECTION TOGGLE CONTROL (bottom-left)
         // ==========================================
         function ProjectionToggleControl() {}
@@ -934,6 +1049,7 @@
             btn.style.fontSize = '14px';
             btn.style.lineHeight = '1';
             btn.style.padding = '4px 6px';
+            btn.style.color = 'black';
             btn.addEventListener('click', () => {
                 // Toggle projection between globe and mercator
                 const current = this._map.getProjection && this._map.getProjection().name;
@@ -963,7 +1079,7 @@
         mapboxgl.accessToken = 'pk.eyJ1Ijoia2lqYW5pIiwiYSI6ImNtODFkeDdhcTE0bmsya3M1cXRhcDA0cnEifQ.TaqkLzoIOZ2ZRiycjOL33Q'
         const map = new mapboxgl.Map({
             container: 'map',
-                style: 'mapbox://styles/mapbox/standard',
+                style: 'mapbox://styles/mapbox/satellite-v9',
                 projection: 'globe',
                 zoom: 2,
                 center: [30, 15],
@@ -973,10 +1089,17 @@
             map.scrollZoom.enable()
             map.doubleClickZoom.enable()
             map.boxZoom.enable()
-            map.on('style.load', () => { map.setFog({}) })
+            map.on('style.load', () => {
+                map.setFog({})
+                if (AppState.polygonBoundaryGeoJSON) {
+                    MapController.showPolygonBoundary(AppState.polygonBoundaryGeoJSON)
+                }
+                MapController.showComparedFeatures(AppState.withinFeatures, AppState.outsideFeatures)
+            })
 
             MapController.init(map)
             map.addControl(new LayersControl(), 'top-right')
+            map.addControl(new StyleToggleControl(), 'bottom-left')
             map.addControl(new ProjectionToggleControl(), 'bottom-left')
         })
         </script>
