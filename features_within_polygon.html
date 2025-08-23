@@ -919,6 +919,38 @@
         }
 
         // ==========================================
+        // PROJECTION TOGGLE CONTROL (bottom-left)
+        // ==========================================
+        function ProjectionToggleControl() {}
+        ProjectionToggleControl.prototype.onAdd = function(map) {
+            this._map = map;
+            const container = document.createElement('div');
+            container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.title = 'Toggle projection';
+            btn.textContent = '⤢'; // small icon-like label
+            btn.style.fontSize = '14px';
+            btn.style.lineHeight = '1';
+            btn.style.padding = '4px 6px';
+            btn.addEventListener('click', () => {
+                // Toggle projection between globe and mercator
+                const current = this._map.getProjection && this._map.getProjection().name;
+                const next = current === 'mercator' ? 'globe' : 'mercator';
+                this._map.setProjection(next);
+            });
+
+            container.appendChild(btn);
+            this._container = container;
+            return container;
+        };
+        ProjectionToggleControl.prototype.onRemove = function() {
+            this._container.parentNode.removeChild(this._container);
+            this._map = undefined;
+        };
+
+        // ==========================================
         // MAP DISPLAY AND SETUP
         // ==========================================
         
@@ -934,7 +966,8 @@
                 style: 'mapbox://styles/mapbox/standard',
                 projection: 'globe',
                 zoom: 2,
-                center: [30, 15]
+                center: [30, 15],
+                logoPosition: 'bottom-right'
             });
             // map controls and interactions
             map.scrollZoom.enable()
@@ -944,6 +977,7 @@
 
             MapController.init(map)
             map.addControl(new LayersControl(), 'top-right')
+            map.addControl(new ProjectionToggleControl(), 'bottom-left')
         })
         </script>
         <script src="js/main.js"></script>
