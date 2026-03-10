@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detect Overlaps</title>
     <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
     <button class="sidebar-toggle">☰</button>
     <nav class="sidebar">
@@ -17,18 +19,21 @@
             <a href="polygons_csv_geojson.html" class="nav-link" id="nav-csv">Convert Polygons CSV to GeoJSON</a>
             <a href="gps_points_csv_geojson.html" class="nav-link" id="nav-gps">CSV GPS Points to GeoJSON</a>
             <a href="detect_overlaps.html" class="nav-link" id="nav-overlaps">Detect Overlaps</a>
+            <a href="detect_invalid_geometries.html" class="nav-link" id="nav-invalid">Detect Invalid Geometries</a>
         </div>
         <div class="sidebar-footer">&copy; 2025 GIS Workbench</div>
     </nav>
     <div class="main-content">
         <div class="tool-card light-green-card">
             <div class="tool-title">Detect Overlapping Polygons</div>
-            <div class="tool-desc">Upload a GeoJSON file containing multiple polygons to identify which ones overlap.</div>
+            <div class="tool-desc">Upload a GeoJSON file containing multiple polygons to identify which ones overlap.
+            </div>
         </div>
         <div class="main-card light-green-card">
             <div class="main-section">
                 <label for="geojsonFileInput">Upload GeoJSON File:</label>
-                <input type="file" id="geojsonFileInput" accept="application/geo+json,application/json,.geojson,.json" />
+                <input type="file" id="geojsonFileInput"
+                    accept="application/geo+json,application/json,.geojson,.json" />
                 <div id="fileStatus"></div>
             </div>
             <div class="main-section" style="text-align:center;">
@@ -42,7 +47,8 @@
                 <p id="progressText"></p>
             </div>
             <div class="main-section" id="resultsSection" style="display:none;">
-                <h2 class="tool-title" style="font-size:1.1em; margin-bottom:10px; text-align:left;">Overlap Results:</h2>
+                <h2 class="tool-title" style="font-size:1.1em; margin-bottom:10px; text-align:left;">Overlap Results:
+                </h2>
                 <div id="overlapResults"></div>
             </div>
         </div>
@@ -50,7 +56,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
     <script src="js/main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const fileInput = document.getElementById('geojsonFileInput');
             const detectBtn = document.getElementById('detectOverlapsBtn');
             const fileStatus = document.getElementById('fileStatus');
@@ -64,7 +70,7 @@
             let overlappingPolygons = [];
             let nonOverlappingPolygons = [];
 
-            fileInput.addEventListener('change', function(event) {
+            fileInput.addEventListener('change', function (event) {
                 const file = event.target.files[0];
                 if (!file) {
                     fileStatus.textContent = '';
@@ -75,7 +81,7 @@
                 }
 
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     try {
                         geojsonData = JSON.parse(e.target.result);
                         if (geojsonData && geojsonData.type === 'FeatureCollection' && Array.isArray(geojsonData.features)) {
@@ -102,7 +108,7 @@
                 reader.readAsText(file);
             });
 
-            detectBtn.addEventListener('click', async function() {
+            detectBtn.addEventListener('click', async function () {
                 if (!geojsonData) return;
 
                 detectBtn.disabled = true;
@@ -110,7 +116,7 @@
                 progressSection.style.display = 'block';
 
                 const polygons = geojsonData.features.filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'));
-                
+
                 await runOverlapDetection(polygons);
 
                 detectBtn.disabled = false;
@@ -155,12 +161,12 @@
                                 console.error(`Error checking intersection between feature ${i} and ${j}:`, e);
                             }
                         }
-                        
+
                         comparisonsMade++;
                         if (comparisonsMade % 100 === 0 || comparisonsMade === totalComparisons) {
                             const progress = (comparisonsMade / totalComparisons) * 100;
                             updateProgressBar(progress, `${comparisonsMade} / ${totalComparisons} comparisons`);
-                            await new Promise(resolve => setTimeout(resolve, 0)); 
+                            await new Promise(resolve => setTimeout(resolve, 0));
                         }
                     }
                 }
@@ -177,7 +183,7 @@
 
                 displayResults(overlaps, polygons.length);
             }
-            
+
             function updateProgressBar(percentage, text) {
                 progressBar.style.width = `${percentage}%`;
                 progressText.textContent = text;
@@ -185,7 +191,7 @@
 
             function displayResults(overlaps, totalPolygons) {
                 resultsSection.style.display = 'block';
-                
+
                 let summaryHtml;
                 if (overlaps.length === 0) {
                     summaryHtml = '<p>No overlaps detected among the polygons.</p>';
@@ -214,7 +220,7 @@
                 overlapResults.innerHTML = summaryHtml + downloadHtml;
                 setupExportButtonListeners();
             }
-            
+
             function setupExportButtonListeners() {
                 const exportOverlappingGeoJsonBtn = document.getElementById('export-overlapping-geojson');
                 if (exportOverlappingGeoJsonBtn) {
@@ -230,7 +236,7 @@
                 if (exportCleanGeoJsonBtn) {
                     exportCleanGeoJsonBtn.addEventListener('click', () => ExportHandler.exportFeatures(nonOverlappingPolygons, 'non_overlapping', 'geojson'));
                 }
-                
+
                 const exportCleanCsvBtn = document.getElementById('export-clean-csv');
                 if (exportCleanCsvBtn) {
                     exportCleanCsvBtn.addEventListener('click', () => ExportHandler.exportFeatures(nonOverlappingPolygons, 'non_overlapping', 'csv'));
@@ -248,7 +254,7 @@
             }
 
             const ExportHandler = {
-                exportFeatures: function(features, type, format) {
+                exportFeatures: function (features, type, format) {
                     if (!features || !features.length) return;
 
                     let content, filename, mime;
@@ -265,7 +271,7 @@
                     this.downloadFile(content, filename, mime);
                 },
 
-                convertFeaturesToCSV: function(features) {
+                convertFeaturesToCSV: function (features) {
                     const propertyKeys = new Set();
                     features.forEach(feat => {
                         if (feat.properties) {
@@ -275,7 +281,7 @@
 
                     const headers = Array.from(propertyKeys);
                     let csv = headers.join(',') + '\n';
-                    
+
                     features.forEach(feat => {
                         const row = headers.map(key => {
                             const val = feat.properties && feat.properties[key] !== undefined ? feat.properties[key] : '';
@@ -286,7 +292,7 @@
                     return csv;
                 },
 
-                downloadFile: function(content, filename, mime) {
+                downloadFile: function (content, filename, mime) {
                     const blob = new Blob([content], { type: mime });
                     const link = document.createElement('a');
                     link.href = window.URL.createObjectURL(blob);
@@ -299,4 +305,5 @@
         });
     </script>
 </body>
-</html> 
+
+</html>
