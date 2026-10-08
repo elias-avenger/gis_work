@@ -1,11 +1,11 @@
 // Shared UI/UX logic for GIS Workbench
 
 // Sidebar toggle (for mobile)
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     var sidebarToggle = document.querySelector('.sidebar-toggle');
     var sidebar = document.querySelector('.sidebar');
     if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', function() {
+        sidebarToggle.addEventListener('click', function () {
             sidebar.classList.toggle('open');
         });
     }
@@ -17,7 +17,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'features_within_polygon.html': 'nav-features',
         'polygons_csv_geojson.html': 'nav-csv',
         'gps_points_csv_geojson.html': 'nav-gps',
-        'detect_overlaps.html': 'nav-overlaps'
+        'detect_overlaps.html': 'nav-overlaps',
+        'detect_invalid_geometries.html': 'nav-invalid'
     };
     if (path === '' || path === 'index.html') {
         const homeLink = document.getElementById('nav-home');
